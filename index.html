@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-HK"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>形態 MC 練習｜三角形・旗形・楔形</title>
+<style>
+body{font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;margin:0;background:#f4f6f8;color:#222;line-height:1.55}
+main{max-width:800px;margin:auto;padding:12px}.card{background:#fff;border-radius:10px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}
+h1{font-size:20px;margin:6px 0}h3{font-size:16px;margin:14px 0 6px}.tag{display:inline-block;background:#e8eaf6;border-radius:12px;padding:1px 10px;font-size:12px;margin-right:4px}
+.tag.sim{background:#fff3e0;color:#e65100}button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:15px;cursor:pointer;margin:4px 4px 4px 0}
+button.alt{background:#78909c}button:disabled{opacity:.5}.opt{display:block;border:1px solid #cfd8dc;border-radius:8px;padding:8px 10px;margin:5px 0;cursor:pointer}
+.opt:has(input:checked){background:#e3f2fd;border-color:#1565c0}textarea{width:100%;box-sizing:border-box;height:60px;font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid #dde;padding:5px;vertical-align:top}th{background:#eef}
+.ok{color:#0a7d32;font-weight:bold}.bad{color:#c62828;font-weight:bold}.warn{background:#fff8e1;border-left:4px solid #f9a825;padding:8px;margin:8px 0}
+.small{font-size:12px;color:#666}canvas{width:100%;border:1px solid #ddd;border-radius:6px}.q{border-top:1px dashed #ccd;padding-top:6px}
+</style></head><body><main id="app"></main>
+<script>
+const PATTERNS={
+asc:{cat:'三角形',name:'上升三角形',pre:1,bias:1,feat:'上方水平阻力線＋下方上傾支持線，各觸至少 2 次，成交量逐步收縮。',
+ pr:'買家較急：每次回調都肯用更高價接貨（上傾支持線＝需求），賣家卻只守住同一價位（水平阻力線＝供給），供給被逐步吃掉。',
+ fail:'假突破：突破水平阻力時成交量不足，其後跌回三角形內'},
+desc:{cat:'三角形',name:'下降三角形',pre:-1,bias:-1,feat:'下方水平支持線＋上方下傾阻力線，各觸至少 2 次，量縮。',
+ pr:'賣家較急：每次反彈都肯用更低價沽出（下傾阻力線＝供給），買家只守住同一價位（水平支持線＝需求），需求被逐步耗盡。',
+ fail:'假跌破：跌穿水平支持時縮量，之後被買家拉回形態內（空頭陷阱）'},
+sym:{cat:'三角形',name:'對稱三角形',pre:0,bias:0,feat:'上軌下傾、下軌上傾，波幅收窄；本身中性，等收市突破。',
+ pr:'買賣雙方都未肯讓步：賣家逐步壓低（下傾阻力線＝供給）、買家逐步抬高（上傾支持線＝需求），波幅收窄，等一方撐不住。',
+ fail:'突破方向與預期相反：對稱三角形本身中性，太早押注一方'},
+bullflag:{cat:'旗形',name:'牛旗',pre:1,bias:1,feat:'急升旗桿後，出現細幅、下傾、大致平行的通道，量縮。',
+ pr:'急升後買家只是歇一歇：賣家小幅獲利回吐，令價格沿下傾通道緩跌，但縮量顯示沽壓不大，買家仍然較急。',
+ fail:'回調太深太長，牛旗變成轉向（回吐超過旗桿約一半）'},
+bearflag:{cat:'旗形',name:'熊旗',pre:-1,bias:-1,feat:'急跌旗桿後，出現細幅、上傾、大致平行的通道，量縮。',
+ pr:'急跌後賣家只是歇一歇：買家小幅反彈令價格沿上傾通道上移，但縮量代表買盤弱，賣家仍然較急。',
+ fail:'反彈太強太久，熊旗變成轉向（反彈超過旗桿約一半）'},
+rw:{cat:'楔形',name:'上升楔形',pre:1,bias:-1,feat:'兩條線都向上但收窄，每次升幅遞減，量縮；偏向下破。',
+ pr:'價格雖升但買家愈追愈乏力（升幅愈來愈細），賣家在上方逐步增加，上升動力衰竭。',
+ fail:'跌穿下軌時未放量，其後反彈再創新高（楔形延伸）'},
+fw:{cat:'楔形',name:'下降楔形',pre:-1,bias:1,feat:'兩條線都向下並收窄，每次跌幅遞減，量縮；偏向上破。',
+ pr:'價格雖跌但賣家愈沽愈乏力（跌幅收窄），買家在下方逐步承接，下跌動力衰竭。',
+ fail:'未放量突破上軌就入場，價格再創新低'}};
+const GEN_FAIL=['止蝕設得太近，被正常波動掃走','大市或消息面突然逆向，令形態失效','前段趨勢其實已轉向，形態只係中途喘息'];
+const HARD_FAIL='假突破：突破K線縮量、未獲確認，價格隨後跌回形態內';
+const ITEMS=['形態名稱','第一性原理','偏向','入場條件','止蝕','目標價','最可能出錯原因'];
+const DRILL=['練習：用 3 張圖只問「幾條線？邊條平？邊條斜？」，先分類再命名。','練習：每個形態用一句「邊方較急／邊條線係供給或需求」講出來，再對答案。','練習：只睇前段趨勢＋形態斜率，講出偏向，唔好睇答案走勢。','練習：寫低「收市價＋成交量」兩個確認條件，重做 3 題高級假突破。','練習：止蝕一律放形態對側軌道外，計算與入場價的百分比距離。','練習：三角形量最闊位、旗形量旗桿、楔形回到起點，各量一次。','練習：每題先寫「呢單點樣會輸」，對照形態常見失敗模式。'];
+const LV={1:'初級',2:'中級',3:'高級（含假突破）'};
+function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuf(R,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+function genScenario(key,level,seed){
+ const P=PATTERNS[key],R=mb(seed),rnd=(a,b)=>a+(b-a)*R(),bars=[];
+ let p=rnd(40,160);const p0=p,vb=rnd(.8,1.3)*1e6,pd=key==='sym'?(R()<.5?1:-1):P.pre,atr0=p*.014,pole=key==='bullflag'||key==='bearflag',nz={1:.7,2:1,3:1.3}[level];
+ const add=(o,c,vm,atr)=>bars.push({o,c,h:Math.max(o,c)+R()*atr*.5,l:Math.min(o,c)-R()*atr*.5,v:vb*vm*(.8+R()*.4)});
+ let poleH=0,preDesc,preN;
+ if(pole){for(let i=0;i<8;i++){const o=p,c=o+(R()-.5)*atr0*1.2;add(o,c,.8,atr0);p=c}
+  const s0=p,tot=p0*.18*(level===1?1.1:level===2?1:.9);
+  for(let i=0;i<8;i++){const o=p,c=o+pd*tot/8+(R()-.5)*atr0*.4*nz;add(o,c,2,atr0*1.2);p=c}
+  poleH=Math.abs(p-s0);preN=16;preDesc=(pd>0?'急速上升':'急速下跌')+'（旗桿約 '+(poleH/s0*100).toFixed(0)+'%，8 根）'}
+ else{const tot=pd*p0*({1:.16,2:.13,3:.10}[level]);for(let i=0;i<18;i++){const o=p,c=o+tot/18+(R()-.5)*atr0*1.6*nz;add(o,c,1,atr0);p=c}
+  preN=18;preDesc=key==='sym'?(pd>0?'上升':'下跌')+'（約 '+(tot/p0*100).toFixed(0)+'%，18 根）':(pd>0?'上升':'下跌')+'（約 '+Math.abs(tot/p0*100).toFixed(0)+'%，18 根）'}
+ const ps=p,M=pole?14:26,atr=ps*.012,W0=ps*(key==='rw'||key==='fw'?.08:.09),Wf=ps*.045,drop=poleH*.35,cv=i=>.92*i/(1.1*M);
+ let U,Lw;
+ switch(key){
+ case'asc':U=i=>ps+W0/2;Lw=i=>ps-W0/2+W0*cv(i);break;
+ case'desc':Lw=i=>ps-W0/2;U=i=>ps+W0/2-W0*cv(i);break;
+ case'sym':U=i=>ps+W0/2-W0*cv(i)/2;Lw=i=>ps-W0/2+W0*cv(i)/2;break;
+ case'bullflag':U=i=>ps+Wf*.1-drop*i/(M-1);Lw=i=>U(i)-Wf;break;
+ case'bearflag':Lw=i=>ps-Wf*.1+drop*i/(M-1);U=i=>Lw(i)+Wf;break;
+ case'rw':U=i=>ps+W0/2+.5*W0*i/(M-1);Lw=i=>ps-W0/2+1.25*W0*i/(M-1);break;
+ case'fw':U=i=>ps+W0/2-1.25*W0*i/(M-1);Lw=i=>ps-W0/2-.5*W0*i/(M-1);break}
+ const T=pole?6:8,phi=key==='bullflag'?Math.PI/2:key==='bearflag'?-Math.PI/2:rnd(0,Math.PI);let prev=ps,mn=1e9,mx=-1e9;
+ for(let i=0;i<M;i++){
+  let q=.5+.5*Math.sin(2*Math.PI*i/T+phi)+(R()-.5)*.22*nz;q=cl(q,.04,.96);
+  const u=U(i),l=Lw(i),g=u-l,c=l+q*g,o=prev;let h=Math.max(o,c)+R()*atr*.45,lo=Math.min(o,c)-R()*atr*.45;
+  if(q>.82)h=Math.max(h,u-R()*g*.04);if(q<.18)lo=Math.min(lo,l+R()*g*.04);
+  h=Math.max(Math.min(h,u+(level>1&&R()<.08?atr*.4:atr*.1)),o,c);lo=Math.min(Math.max(lo,l-(level>1&&R()<.08?atr*.4:atr*.1)),o,c);
+  bars.push({o,c,h,l:lo,v:vb*(pole?.9:1)*(1-.5*i/M)*(.8+R()*.4)});prev=c;mn=Math.min(mn,lo);mx=Math.max(mx,h)}
+ const d=key==='sym'?pd:P.bias,hard=level===3,brk=i=>d>0?U(i):Lw(i),opp=i=>d>0?Lw(i):U(i),idxE=hard?M+1:M;
+ if(hard){const c=brk(M)+d*atr*.7;bars.push({o:prev,c,h:Math.max(prev,c)+atr*.3,l:Math.min(prev,c)-atr*.2,v:vb*.4})}
+ const entry=brk(idxE)+d*atr*.2,stop=opp(idxE)-d*atr*.5;
+ let tgt;if(key==='asc'||key==='desc'||key==='sym')tgt=entry+d*(U(0)-Lw(0));else if(pole)tgt=entry+d*poleH;else tgt=key==='rw'?Lw(0):U(0);
+ const m=Math.abs(tgt-entry),fut=[];let lc=bars[bars.length-1].c;
+ const push=(c,vm,a)=>{fut.push({o:lc,c,h:Math.max(lc,c)+R()*atr*.4,l:Math.min(lc,c)-R()*atr*.4,v:vb*vm*(.8+R()*.4)});lc=c};
+ if(hard){push(brk(M+1)-d*atr*1.2,1.1);push((U(M+2)+Lw(M+2))/2,1.3);const e=lc-d*m*.5;for(let k=1;k<=6;k++)push(lc+(e-lc)/(7-k)+(R()-.5)*atr*.8,1.2)}
+ else{push(brk(M)+d*atr*.9,2.3);const e=entry+d*m*.85;for(let k=1;k<=8;k++)push(lc+(e-lc)/(9-k)+(R()-.5)*atr*.8,1.2)}
+ return{key,P,level,bars,fut,futN:10,preN,poleH,M,U,L:Lw,d,atr,entry,stop,target:tgt,m,idxE,hard,mn,mx,preDesc,pd}}
+function buildQs(sc,seed){
+ const R=mb(seed+7),P=sc.P,d=sc.d,hard=sc.hard,key=sc.key,E=sc.entry,f=x=>x.toFixed(2),pc=x=>(x>=E?'+':'')+((x-E)/E*100).toFixed(1)+'%';
+ const keys=Object.keys(PATTERNS),same=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat===P.cat)).slice(0,2),oth=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat!==P.cat));
+ const pk=[key,...same];for(const o of oth){if(pk.length>=4)break;pk.push(o)}
+ const op=(t,ok)=>({t,ok:!!ok}),qs=[];
+ qs.push({it:0,p:'形態名稱是？',o:shuf(R,pk.map(k=>op(PATTERNS[k].name,k===key))),ex:P.name+'：'+P.feat});
+ qs.push({it:1,p:'哪一句最準確解釋這個形態（誰較急？哪條線代表供給／需求）？',o:shuf(R,pk.map(k=>op(PATTERNS[k].pr,k===key))),ex:P.pr});
+ qs.push({it:2,p:'整體偏向？',o:[op('偏向升（看漲）',P.bias>0),op('偏向跌（看淡）',P.bias<0),op('中性：等突破方向確認',P.bias===0)],ex:P.bias===0?'對稱三角形本身中性，要等收市突破才定方向（本題前趨勢為'+(sc.pd>0?'升':'跌')+'，後面按此方向計算）。':'偏向'+(P.bias>0?'升':'跌')+'。'});
+ const ln=d>0?'上軌（阻力線）':'下軌（支持線）',act=d>0?'做多':'做空',cut=d>0?'跌穿下軌':'升穿上軌';let er,ew;
+ if(key==='sym'){er=hard?'最後一支突破K線縮量，未獲確認；等放量收市或回測不破，才順突破方向入場':'等收市有效突破上軌或下軌並放量，才順突破方向入場（不預先估方向）';
+  ew=hard?['最後一支K線收市已過線，即追入','未突破前預先押注前趨勢方向','影線刺穿即入場，毋須理會成交量']:['未突破前預先押注前趨勢方向','影線刺穿即入場，毋須理會收市及成交量','跌穿下軌後即反手做多']}
+ else{er=hard?`最後一支突破K線成交量偏低，未算確認；等放量收市企穩${ln}之外，或回測不破才${act}`:`收市價有效突破${ln}，並伴隨成交量明顯放大，才${act}`;
+  ew=hard?[`最後一支K線已收市過${ln}，即時追入${act}`,`未見突破，喺形態中間預先重倉${act}`,`${cut}後反手${act}`]:[`未突破前，喺形態中間預先重倉${act}`,`影線刺穿${ln}即入場，毋須理會收市價及成交量`,`${cut}後反手${act}`]}
+ qs.push({it:3,p:'入場條件？',o:shuf(R,[op(er,1),...ew.map(t=>op(t))]),ex:'正解：'+er});
+ let tt=d>0?E*.996:E*1.004;if(tt.toFixed(2)===sc.stop.toFixed(2))tt=d>0?E*.985:E*1.015;const sv=[sc.stop,tt,d>0?Math.min(sc.mn-sc.atr,sc.stop-1.5*sc.atr):Math.max(sc.mx+sc.atr,sc.stop+1.5*sc.atr),d>0?E*1.02:E*.98];
+ qs.push({it:4,p:`假設已按${d>0?'突破上方':'跌破下方'}入場（入場價約 $${f(E)}），止蝕放邊？`,o:shuf(R,sv.map((v,i)=>op(`$${f(v)}（距入場 ${pc(v)}）`,i===0))),ex:`止蝕放形態對側軌道外一點，約 $${f(sc.stop)}；太貼突破位易被回踩掃走，放形態極端位則蝕位過大，放入場價另一邊根本不合邏輯。`});
+ const tv=[sc.target,E+d*sc.m*.5,E+d*sc.m*2.2,E-d*sc.m];const meth=P.cat==='三角形'?'三角形最闊位高度':P.cat==='旗形'?'旗桿高度':'回到楔形起點';
+ qs.push({it:5,p:'目標價（同一入場價 $'+f(E)+'）？',o:shuf(R,tv.map((v,i)=>op(`$${f(v)}（${pc(v)}）`,i===0))),ex:`量度法：${meth}，由突破位起計，約 $${f(sc.target)}。`});
+ const fr=hard?HARD_FAIL:P.fail,fp=shuf(R,[...keys.filter(k=>k!==key).map(k=>PATTERNS[k].fail),...GEN_FAIL]).filter(t=>t!==fr).slice(0,3);
+ qs.push({it:6,p:'呢個判斷最可能出錯在？',o:shuf(R,[op(fr,1),...fp.map(t=>op(t))]),ex:fr});
+ return qs}
+function drawChart(cv,sc,reveal){
+ const dpr=(typeof window!=='undefined'&&window.devicePixelRatio)||1,W=760,H=460;cv.width=W*dpr;cv.height=H*dpr;
+ const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#fff';g.fillRect(0,0,W,H);
+ const vis=sc.bars,fut=reveal?sc.fut:[],all=vis.concat(fut),slots=vis.length+sc.futN,L=8,Rm=70,top=14,PH=300,vt=top+PH+16,VH=H-vt-14,sl=(W-L-Rm)/slots;
+ let hi=Math.max(...all.map(b=>b.h)),lo=Math.min(...all.map(b=>b.l));
+ if(reveal)[sc.entry,sc.stop,sc.target].forEach(v=>{hi=Math.max(hi,v);lo=Math.min(lo,v)});
+ const pad=(hi-lo)*.06;hi+=pad;lo-=pad;const X=i=>L+(i+.5)*sl,Y=v=>top+(hi-v)/(hi-lo)*PH,vm=Math.max(...all.map(b=>b.v));
+ g.font='11px sans-serif';g.textBaseline='middle';
+ for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.strokeStyle='#eee';g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();g.fillStyle='#777';g.fillText(v.toFixed(2),W-Rm+4,y)}
+ all.forEach((b,i)=>{const up=b.c>=b.o,col=up?'#d93025':'#0f9d58',x=X(i),w=sl*.62;g.strokeStyle=g.fillStyle=col;
+  g.beginPath();g.moveTo(x,Y(b.h));g.lineTo(x,Y(b.l));g.stroke();g.fillRect(x-w/2,Math.min(Y(b.o),Y(b.c)),w,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));
+  const vh=b.v/vm*VH;g.globalAlpha=i>=vis.length?.55:.8;g.fillRect(x-w/2,vt+VH-vh,w,vh);g.globalAlpha=1});
+ g.fillStyle='#777';g.fillText('成交量',L+2,vt+6);
+ g.fillStyle='#e65100';g.font='bold 12px sans-serif';g.fillText('模擬教學圖（非真實市場）　紅升綠跌',L+4,top+8);g.font='11px sans-serif';
+ if(reveal){const p0=sc.preN,M=sc.M,lineSeg=(f,c,a,b,dash)=>{g.strokeStyle=c;g.lineWidth=2;g.setLineDash(dash?[6,4]:[]);g.beginPath();g.moveTo(X(p0+a),Y(f(a)));g.lineTo(X(p0+b),Y(f(b)));g.stroke();g.setLineDash([]);g.lineWidth=1};
+  lineSeg(sc.U,'#e65100',0,M-1);lineSeg(sc.U,'#e65100',M-1,M+3,1);lineSeg(sc.L,'#1565c0',0,M-1);lineSeg(sc.L,'#1565c0',M-1,M+3,1);
+  g.fillStyle='#e65100';g.fillText('阻力線＝供給',X(p0)+4,Y(sc.U(0))-10);g.fillStyle='#1565c0';g.fillText('支持線＝需求',X(p0)+4,Y(sc.L(0))+12);
+  if(sc.poleH){g.fillStyle='#555';g.fillText('旗桿',X(p0-5),Y(sc.bars[p0-1].c)+(sc.pd>0?-16:16))}
+  const xs=X(p0+sc.idxE);[[sc.entry,'#6a1b9a','入場',0],[sc.stop,'#455a64','止蝕',1],[sc.target,'#f9a825','目標',1]].forEach(([v,c,t,dash])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash(dash?[5,4]:[]);g.beginPath();g.moveTo(xs,Y(v));g.lineTo(W-Rm,Y(v));g.stroke();g.setLineDash([]);g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t+' '+v.toFixed(2),W-Rm+4,Y(v)+(t==='入場'?-8:0))});
+  const dx=X(vis.length-1)+sl/2;g.strokeStyle='#999';g.setLineDash([3,3]);g.beginPath();g.moveTo(dx,top);g.lineTo(dx,vt+VH);g.stroke();g.setLineDash([]);g.fillStyle='#555';g.font='11px sans-serif';g.fillText('後續走勢（答案揭示）→',dx+4,top+PH-6)}}
+const KEY='patternMC_v1';let S;
+function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{weak:{},items:{},hist:[],last:null,level:1};S.items=S.items||{};}
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+let RD=null,CUR=null;const $=s=>document.getElementById(s),app=()=>$('app');
+function pick(cat){const ks=Object.keys(PATTERNS).filter(k=>PATTERNS[k].cat===cat),due=ks.filter(k=>S.weak[k]&&S.weak[k].due<=0).sort((a,b)=>S.weak[b].wrong-S.weak[a].wrong);
+ if(due.length)return{k:due[0],rev:1};const c=ks.filter(k=>k!==RD.lastBy[cat]);return{k:c[Math.floor(Math.random()*c.length)],rev:0}}
+function startRound(level){S.level=level;let cats=['三角形','旗形','楔形'].sort(()=>Math.random()-.5);if(cats[0]===S.last)cats.push(cats.shift());RD={level,cats,n:0,res:[],lastBy:RD?RD.lastBy:{}};nextQ()}
+function nextQ(){const cat=RD.cats[RD.n],p=pick(cat),seed=Math.floor(Math.random()*4e9);RD.lastBy[cat]=p.k;const sc=genScenario(p.k,RD.level,seed);CUR={sc,qs:buildQs(sc,seed),rev:p.rev};renderQ()}
+function home(){load();const w=Object.entries(S.weak),it=Object.entries(S.items).filter(([k,v])=>v.w>0).sort((a,b)=>b[1].w-a[1].w);
+ app().innerHTML=`<div class="card"><h1>📈 形態 MC 練習</h1><p>三角形・旗形・楔形｜每輪 3 題，三類交錯，錯咗隔幾題再出現。</p>
+ <p class="small">全部圖表均為<b>模擬教學圖</b>，只作學習，非投資建議。</p>
+ <h3>揀難度</h3><button data-l="1">初級</button><button data-l="2">中級</button><button data-l="3">高級（含假突破）</button></div>
+ <div class="card"><h3>弱點清單</h3>${w.length?'<table><tr><th>形態</th><th>錯誤次數</th><th>幾題後重現</th></tr>'+w.map(([k,v])=>`<tr><td>${PATTERNS[k].name}</td><td>${v.wrong}</td><td>${v.due>0?v.due:'下一次輪到該類別就出'}</td></tr>`).join('')+'</table>':'<p class="small">暫時冇。</p>'}
+ ${it.length?'<p class="small">項目錯誤：'+it.map(([k,v])=>`${ITEMS[k]} ${v.w}/${v.t}`).join('、')+'</p>':''}
+ <button class="alt" id="rs">清除紀錄</button></div>`;
+ document.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>startRound(+b.dataset.l));$('rs').onclick=()=>{if(confirm('確定清除？')){localStorage.removeItem(KEY);home()}}}
+function renderQ(){const{sc,qs}=CUR;
+ app().innerHTML=`<div class="card"><span class="tag">第 ${RD.n+1}/3 題</span><span class="tag">${LV[RD.level]}</span><span class="tag sim">模擬教學圖</span>${CUR.rev?'<span class="tag">間隔重溫</span>':''}
+ <p><b>市場</b>：SIM-${String.fromCharCode(65+Math.floor(Math.random()*26))}（模擬股票）　<b>時間框架</b>：日線　<b>前段趨勢</b>：${sc.preDesc}</p>
+ <canvas id="cv"></canvas><p class="small">圖已截於形態尾部，後續走勢隱藏。${sc.hard?'留意最後一支K線同成交量。':''}</p>
+ <h3>① 防事後孔明：先寫「我呢個判斷可能錯在邊」</h3><textarea id="why" placeholder="例如：我可能誤將對稱三角形當成上升三角形…"></textarea>
+ <h3>② 作答（7 項，每項 1 分）</h3>${qs.map((q,i)=>`<div class="q"><b>${i+1}. ${ITEMS[q.it]}</b>：${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}</div>`).join('')}
+ <p id="msg" class="bad"></p><button id="sub">提交批改</button></div>`;
+ drawChart($('cv'),sc,false);
+ $('sub').onclick=()=>{const why=$('why').value.trim();if(why.length<4){$('msg').textContent='請先完成①：寫低你覺得可能錯在邊。';return}
+  const ans=qs.map((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);return r?+r.value:-1});if(ans.includes(-1)){$('msg').textContent='仲有項目未答（第 '+(ans.indexOf(-1)+1)+' 項）。';return}grade(ans,why)}}
+function grade(ans,why){const{sc,qs}=CUR;let tot=0;const rows=qs.map((q,i)=>{const ok=q.o[ans[i]].ok;tot+=ok?1:0;return{q,ok,u:q.o[ans[i]].t,c:q.o.find(o=>o.ok).t}});
+ Object.values(S.weak).forEach(w=>{if(w.due>0)w.due--});
+ rows.forEach(r=>{const s=S.items[r.q.it]=S.items[r.q.it]||{w:0,t:0};s.t++;if(!r.ok)s.w++});
+ const k=sc.key,nameOk=rows[0].ok;
+ if(!nameOk||tot<5){const w=S.weak[k]=S.weak[k]||{wrong:0,due:0,streak:0};w.wrong++;w.due=2;w.streak=0}
+ else if(S.weak[k]){const w=S.weak[k];w.streak++;if(w.streak>=2)delete S.weak[k]}
+ S.last=RD.cats[RD.n];S.hist.push({t:Date.now(),k,lv:RD.level,s:tot});save();RD.res.push(tot);
+ const bad=rows.find(r=>!r.ok);
+ app().innerHTML=`<div class="card"><span class="tag">第 ${RD.n+1}/3 題</span><span class="tag sim">模擬教學圖</span><h1>得分 ${tot}/7　${sc.P.name}</h1>
+ <p><b>第一性原理</b>：${sc.P.pr}</p><canvas id="cv"></canvas>
+ <table><tr><th>項目</th><th>你揀</th><th>正解</th><th>分</th></tr>${rows.map(r=>`<tr><td>${ITEMS[r.q.it]}</td><td>${r.u}</td><td>${r.c}</td><td class="${r.ok?'ok':'bad'}">${r.ok?'✔ 1':'✘ 0'}</td></tr>`).join('')}</table>
+ <div class="warn"><b>你事前寫嘅風險</b>：${why.replace(/</g,'&lt;')}<br>對照本形態常見失敗：${sc.hard?HARD_FAIL:sc.P.fail}</div>
+ ${bad?`<p><b>最關鍵錯誤</b>：${ITEMS[bad.q.it]}。${bad.q.ex}<br>${DRILL[bad.q.it]}</p>`:'<p class="ok">全部答啱！</p>'}
+ <p class="small">答案線：橙＝阻力（供給）、藍＝支持（需求）、紫＝入場、灰虛線＝止蝕、黃虛線＝目標。教學用途，非投資建議。</p>
+ <button id="nx">${RD.n<2?'下一題':'完成本輪'}</button></div>`;
+ drawChart($('cv'),sc,true);$('nx').onclick=()=>{if(RD.n<2){RD.n++;nextQ()}else summary()}}
+function summary(){const t=RD.res.reduce((a,b)=>a+b,0);
+ app().innerHTML=`<div class="card"><h1>本輪完成：${t}/21</h1><p>各題：${RD.res.join(' / ')}</p><p class="small">答錯嘅形態已加入弱點清單，之後會隔幾題再出現。</p><button id="a">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`;
+ $('a').onclick=()=>startRound(RD.level);$('h').onclick=()=>home()}
+if(typeof document!=='undefined'&&document.getElementById('app'))home();
+if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS};
+</script></body></html>
