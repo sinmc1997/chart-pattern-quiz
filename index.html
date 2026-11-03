@@ -1,48 +1,139 @@
 <!DOCTYPE html>
 <html lang="zh-HK"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>形態 MC 練習｜三角形・旗形・楔形</title>
+<title>形態訓練營</title>
 <style>
-body{font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;margin:0;background:#f4f6f8;color:#222;line-height:1.55}
-main{max-width:800px;margin:auto;padding:12px}.card{background:#fff;border-radius:10px;padding:14px;margin:10px 0;box-shadow:0 1px 3px #0002}
-h1{font-size:20px;margin:6px 0}h3{font-size:16px;margin:14px 0 6px}.tag{display:inline-block;background:#e8eaf6;border-radius:12px;padding:1px 10px;font-size:12px;margin-right:4px}
-.tag.sim{background:#fff3e0;color:#e65100}button{background:#1565c0;color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:15px;cursor:pointer;margin:4px 4px 4px 0}
-button.alt{background:#78909c}button:disabled{opacity:.5}.opt{display:block;border:1px solid #cfd8dc;border-radius:8px;padding:8px 10px;margin:5px 0;cursor:pointer}
-.opt:has(input:checked){background:#e3f2fd;border-color:#1565c0}textarea{width:100%;box-sizing:border-box;height:60px;font-size:14px}
-table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid #dde;padding:5px;vertical-align:top}th{background:#eef}
-.ok{color:#0a7d32;font-weight:bold}.bad{color:#c62828;font-weight:bold}.warn{background:#fff8e1;border-left:4px solid #f9a825;padding:8px;margin:8px 0}
-.small{font-size:12px;color:#666}canvas{width:100%;border:1px solid #ddd;border-radius:6px}.q{border-top:1px dashed #ccd;padding-top:6px}
+:root{--bg:#f4f6f8;--card:#fff;--fg:#1f2328;--muted:#667080;--line:#d0d7de;--accent:#1565c0;--accent-fg:#fff;--accent-weak:#e3f2fd;--alt:#78909c;--ok:#0a7d32;--ok-bg:#e8f5e9;--bad:#c62828;--bad-bg:#ffebee;--warn:#f9a825;--warn-bg:#fff8e1;--tag:#e8eaf6;--tag-fg:#283593;--sim:#e65100;--sim-bg:#fff3e0;--hl:#6a1b9a;--hl-bg:#f3e5f5;--chart-bg:#fff;--chart-grid:#eee;--chart-axis:#777;--res:#e65100;--sup:#1565c0;--user:#8e24aa;--shadow:0 1px 3px #0002}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1216;--card:#181c22;--fg:#e6e8eb;--muted:#9aa4b2;--line:#2e3540;--accent:#4c8dff;--accent-weak:#1c2a44;--alt:#4a5868;--ok:#5cc463;--ok-bg:#16301b;--bad:#ff6b66;--bad-bg:#3a1a1a;--warn:#f9a825;--warn-bg:#332a10;--tag:#252b45;--tag-fg:#b8c2ff;--sim:#ffb074;--sim-bg:#3a2510;--hl:#d6a8f5;--hl-bg:#2e1d3a;--chart-bg:#12161b;--chart-grid:#232a33;--chart-axis:#8b95a3;--res:#ff9e57;--sup:#64a8ff;--user:#e07bff;--shadow:0 1px 3px #0008}}
+:root[data-theme="dark"]{--bg:#0f1216;--card:#181c22;--fg:#e6e8eb;--muted:#9aa4b2;--line:#2e3540;--accent:#4c8dff;--accent-weak:#1c2a44;--alt:#4a5868;--ok:#5cc463;--ok-bg:#16301b;--bad:#ff6b66;--bad-bg:#3a1a1a;--warn:#f9a825;--warn-bg:#332a10;--tag:#252b45;--tag-fg:#b8c2ff;--sim:#ffb074;--sim-bg:#3a2510;--hl:#d6a8f5;--hl-bg:#2e1d3a;--chart-bg:#12161b;--chart-grid:#232a33;--chart-axis:#8b95a3;--res:#ff9e57;--sup:#64a8ff;--user:#e07bff;--shadow:0 1px 3px #0008}
+*{box-sizing:border-box}
+body{font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;margin:0;background:var(--bg);color:var(--fg);line-height:1.55}
+main{max-width:860px;margin:auto;padding:12px 16px 40px}
+.card{background:var(--card);border-radius:12px;padding:14px 16px;margin:10px 0;box-shadow:var(--shadow)}
+h1{font-size:21px;margin:6px 0}h2{font-size:19px;margin:6px 0}h3{font-size:16px;margin:14px 0 6px}
+.tags{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:6px}
+.tag{display:inline-block;background:var(--tag);color:var(--tag-fg);border-radius:12px;padding:1px 10px;font-size:12px}
+.tag.sim{background:var(--sim-bg);color:var(--sim)}.tag.hl{background:var(--hl-bg);color:var(--hl);font-weight:bold}
+button{background:var(--accent);color:var(--accent-fg);border:0;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer;margin:4px 4px 4px 0;font-family:inherit}
+button.alt{background:var(--alt);color:#fff}button.sm{padding:5px 11px;font-size:13px}button:disabled{opacity:.5;cursor:default}
+.opt{display:block;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:5px 0;cursor:pointer}
+.opt:has(input:checked){background:var(--accent-weak);border-color:var(--accent)}
+.guess{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer;margin:2px 0 4px;padding:2px 8px;border:1px dashed var(--line);border-radius:12px}
+.guess:has(input:checked){color:var(--hl);border-color:var(--hl);background:var(--hl-bg)}
+textarea{width:100%;height:64px;font-size:14px;font-family:inherit;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px}
+select{font-size:14px;padding:4px;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0}td,th{border:1px solid var(--line);padding:5px;vertical-align:top}th{background:var(--accent-weak);text-align:left}
+.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}
+.warn{background:var(--warn-bg);border-left:4px solid var(--warn);padding:8px 10px;margin:8px 0;border-radius:4px}
+.badbox{background:var(--bad-bg);border-left:4px solid var(--bad);padding:8px 10px;margin:8px 0;border-radius:4px}
+.okbox{background:var(--ok-bg);border-left:4px solid var(--ok);padding:8px 10px;margin:8px 0;border-radius:4px}
+.warn ul,.badbox ul{margin:4px 0;padding-left:20px}
+tr.blind td{background:var(--bad-bg)}
+.small{font-size:12px;color:var(--muted)}
+canvas{width:100%;display:block;border:1px solid var(--line);border-radius:6px}
+.q{border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+.cvwrap{position:relative}
+.cover{position:absolute;inset:0;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;border-radius:6px;border:1px solid var(--line)}
+.cover[hidden]{display:none}
+.tbar{height:4px;background:var(--accent);border-radius:2px;margin:4px 0;width:100%}
+.nameopts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:8px 0}
+.nameopts button{margin:0;background:var(--card);color:var(--fg);border:1px solid var(--line)}
+.nameopts button:disabled{opacity:.55}.nameopts button.right,.nameopts button.wrong{opacity:1}
+.nameopts button.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:bold}
+.nameopts button.wrong{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:10px 0}
+.mode{background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer;border:1px solid transparent}
+.mode:hover{border-color:var(--accent)}.mode b{font-size:16px}.mode p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin:10px 0 6px}
+.stats4 b{display:block;font-size:20px}.stats4 span{font-size:12px;color:var(--muted)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+.mbar{display:inline-block;width:90px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;vertical-align:middle;margin-right:6px}.mbar i{display:block;height:100%}
+.rec{display:block;width:100%;text-align:left;background:var(--card);color:var(--fg);border:1px solid var(--line);margin:6px 0}
+.rec.main{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.rec span{display:block;font-size:12px;opacity:.8;margin-top:2px}
+.path li{margin:3px 0}.path .done{color:var(--ok)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:640px){.pair{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr;gap:8px}.mode{padding:10px}.mode b{font-size:15px}.stats4 b{font-size:17px}}
+.plabel{font-weight:bold;margin:4px 0}
+.sch{width:100%;max-width:180px;height:auto;display:block;background:var(--chart-bg);border:1px solid var(--line);border-radius:6px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.lcard{background:var(--card);border-radius:10px;padding:10px;box-shadow:var(--shadow);cursor:pointer;border:1px solid transparent}.lcard:hover{border-color:var(--accent)}
+.mn{background:var(--hl-bg);color:var(--hl);padding:6px 10px;border-radius:8px;font-weight:bold}
+.answer p{margin:6px 0}
+.rate{display:flex;flex-wrap:wrap;gap:4px}
+.scroll{overflow-x:auto}
+table.cm td,table.cm th{text-align:center;padding:4px;min-width:34px}
+.spark{width:100%;max-width:420px;height:70px;display:block}
+.srs{font-size:13px;background:var(--accent-weak);padding:6px 10px;border-radius:8px;margin:8px 0}
+.drawhelp{font-weight:bold;color:var(--user);margin:6px 0}
+details summary{cursor:pointer;font-weight:bold}
+.set label{display:block;margin:6px 0}
 </style></head><body><main id="app"></main>
 <script>
+/* ================= 形態資料 ================= */
 const PATTERNS={
-asc:{cat:'三角形',name:'上升三角形',pre:1,bias:1,feat:'上方水平阻力線＋下方上傾支持線，各觸至少 2 次，成交量逐步收縮。',
+asc:{cat:'三角形',name:'上升三角形',s:'升三',pre:1,bias:1,up:'水平',lo:'上傾',shape:'收窄',pole:0,mn:'頂平・底升 → 買家逼爆天花板',
+ feat:'上方水平阻力線＋下方上傾支持線，各觸至少 2 次，成交量逐步收縮。',
  pr:'買家較急：每次回調都肯用更高價接貨（上傾支持線＝需求），賣家卻只守住同一價位（水平阻力線＝供給），供給被逐步吃掉。',
  fail:'假突破：突破水平阻力時成交量不足，其後跌回三角形內'},
-desc:{cat:'三角形',name:'下降三角形',pre:-1,bias:-1,feat:'下方水平支持線＋上方下傾阻力線，各觸至少 2 次，量縮。',
+desc:{cat:'三角形',name:'下降三角形',s:'降三',pre:-1,bias:-1,up:'下傾',lo:'水平',shape:'收窄',pole:0,mn:'底平・頂降 → 賣家壓穿地板',
+ feat:'下方水平支持線＋上方下傾阻力線，各觸至少 2 次，量縮。',
  pr:'賣家較急：每次反彈都肯用更低價沽出（下傾阻力線＝供給），買家只守住同一價位（水平支持線＝需求），需求被逐步耗盡。',
  fail:'假跌破：跌穿水平支持時縮量，之後被買家拉回形態內（空頭陷阱）'},
-sym:{cat:'三角形',name:'對稱三角形',pre:0,bias:0,feat:'上軌下傾、下軌上傾，波幅收窄；本身中性，等收市突破。',
+sym:{cat:'三角形',name:'對稱三角形',s:'對三',pre:0,bias:0,up:'下傾',lo:'上傾',shape:'收窄',pole:0,mn:'上壓・下托 → 兩邊夾實，等邊方爆',
+ feat:'上軌下傾、下軌上傾，波幅收窄；本身中性，等收市突破。',
  pr:'買賣雙方都未肯讓步：賣家逐步壓低（下傾阻力線＝供給）、買家逐步抬高（上傾支持線＝需求），波幅收窄，等一方撐不住。',
  fail:'突破方向與預期相反：對稱三角形本身中性，太早押注一方'},
-bullflag:{cat:'旗形',name:'牛旗',pre:1,bias:1,feat:'急升旗桿後，出現細幅、下傾、大致平行的通道，量縮。',
+bullflag:{cat:'旗形',name:'牛旗',s:'牛旗',pre:1,bias:1,up:'下傾',lo:'下傾',shape:'平行',pole:1,mn:'急升旗桿＋細細下傾旗 → 歇完再升',
+ feat:'急升旗桿後，出現細幅、下傾、大致平行的通道，量縮。',
  pr:'急升後買家只是歇一歇：賣家小幅獲利回吐，令價格沿下傾通道緩跌，但縮量顯示沽壓不大，買家仍然較急。',
  fail:'回調太深太長，牛旗變成轉向（回吐超過旗桿約一半）'},
-bearflag:{cat:'旗形',name:'熊旗',pre:-1,bias:-1,feat:'急跌旗桿後，出現細幅、上傾、大致平行的通道，量縮。',
+bearflag:{cat:'旗形',name:'熊旗',s:'熊旗',pre:-1,bias:-1,up:'上傾',lo:'上傾',shape:'平行',pole:1,mn:'急跌旗桿＋細細上傾旗 → 抖完再跌',
+ feat:'急跌旗桿後，出現細幅、上傾、大致平行的通道，量縮。',
  pr:'急跌後賣家只是歇一歇：買家小幅反彈令價格沿上傾通道上移，但縮量代表買盤弱，賣家仍然較急。',
  fail:'反彈太強太久，熊旗變成轉向（反彈超過旗桿約一半）'},
-rw:{cat:'楔形',name:'上升楔形',pre:1,bias:-1,feat:'兩條線都向上但收窄，每次升幅遞減，量縮；偏向下破。',
+rw:{cat:'楔形',name:'上升楔形',s:'升楔',pre:1,bias:-1,up:'上傾',lo:'上傾',shape:'收窄',pole:0,mn:'兩線都升但收窄 → 愈升愈攰，向下破',
+ feat:'兩條線都向上但收窄（下軌比上軌斜），每次升幅遞減，量縮；偏向下破。',
  pr:'價格雖升但買家愈追愈乏力（升幅愈來愈細），賣家在上方逐步增加，上升動力衰竭。',
  fail:'跌穿下軌時未放量，其後反彈再創新高（楔形延伸）'},
-fw:{cat:'楔形',name:'下降楔形',pre:-1,bias:1,feat:'兩條線都向下並收窄，每次跌幅遞減，量縮；偏向上破。',
+fw:{cat:'楔形',name:'下降楔形',s:'降楔',pre:-1,bias:1,up:'下傾',lo:'下傾',shape:'收窄',pole:0,mn:'兩線都跌但收窄 → 愈跌愈攰，向上破',
+ feat:'兩條線都向下並收窄（上軌比下軌斜），每次跌幅遞減，量縮；偏向上破。',
  pr:'價格雖跌但賣家愈沽愈乏力（跌幅收窄），買家在下方逐步承接，下跌動力衰竭。',
  fail:'未放量突破上軌就入場，價格再創新低'}};
+const PK=Object.keys(PATTERNS);
 const GEN_FAIL=['止蝕設得太近，被正常波動掃走','大市或消息面突然逆向，令形態失效','前段趨勢其實已轉向，形態只係中途喘息'];
 const HARD_FAIL='假突破：突破K線縮量、未獲確認，價格隨後跌回形態內';
 const ITEMS=['形態名稱','第一性原理','偏向','入場條件','止蝕','目標價','最可能出錯原因'];
 const DRILL=['練習：用 3 張圖只問「幾條線？邊條平？邊條斜？」，先分類再命名。','練習：每個形態用一句「邊方較急／邊條線係供給或需求」講出來，再對答案。','練習：只睇前段趨勢＋形態斜率，講出偏向，唔好睇答案走勢。','練習：寫低「收市價＋成交量」兩個確認條件，重做 3 題高級假突破。','練習：止蝕一律放形態對側軌道外，計算與入場價的百分比距離。','練習：三角形量最闊位、旗形量旗桿、楔形回到起點，各量一次。','練習：每題先寫「呢單點樣會輸」，對照形態常見失敗模式。'];
 const LV={1:'初級',2:'中級',3:'高級（含假突破）'};
+const SIMILAR={asc:['sym','rw'],desc:['sym','fw'],sym:['asc','desc'],bullflag:['fw','bearflag'],bearflag:['rw','bullflag'],rw:['asc','bearflag'],fw:['desc','bullflag']};
+const PAIRS=[['asc','rw'],['asc','sym'],['desc','fw'],['desc','sym'],['bullflag','fw'],['bearflag','rw'],['rw','fw'],['bullflag','bearflag'],['asc','desc']];
+const biasTxt=b=>b>0?'偏向上破（看漲）':b<0?'偏向下破（看淡）':'中性（等突破方向）';
+const methOf=P=>P.cat==='三角形'?'三角形最闊位高度，由突破位起計':P.cat==='旗形'?'旗桿高度，由突破位起計':'回到楔形起點';
+function diffTip(a,b){const A=PATTERNS[a],B=PATTERNS[b],o=[];
+ if(A.up!==B.up)o.push(`上軌：「${A.name}」係<b>${A.up}</b>，「${B.name}」係<b>${B.up}</b>`);
+ if(A.lo!==B.lo)o.push(`下軌：「${A.name}」係<b>${A.lo}</b>，「${B.name}」係<b>${B.lo}</b>`);
+ if(A.shape!==B.shape)o.push(`兩條線：「${A.name}」<b>${A.shape}</b>，「${B.name}」<b>${B.shape}</b>`);
+ if(A.pole!==B.pole){const[y,n]=A.pole?[A,B]:[B,A];o.push(`「${y.name}」之前一定有<b>急速旗桿</b>，形態亦較短；「${n.name}」唔需要旗桿`)}
+ if(A.bias!==B.bias)o.push(`偏向：「${A.name}」${biasTxt(A.bias)}；「${B.name}」${biasTxt(B.bias)}`);
+ return o}
+const diffBox=(a,b)=>`<div class="warn"><b>點樣分辨「${PATTERNS[a].name}」同「${PATTERNS[b].name}」</b><ul>${diffTip(a,b).map(x=>'<li>'+x+'</li>').join('')}</ul></div>`;
+
+/* 示意圖（雙重編碼：文字＋圖像） */
+const SCHEM={asc:{u:[15,20,85,20],l:[15,66,85,24]},desc:{u:[15,14,85,56],l:[15,60,85,60]},sym:{u:[15,10,85,37],l:[15,68,85,41]},
+ bullflag:{pole:[4,74,30,16],u:[30,16,86,32],l:[30,32,86,48]},bearflag:{pole:[4,6,30,64],u:[30,48,86,32],l:[30,64,86,48]},
+ rw:{u:[15,40,85,12],l:[15,72,85,20]},fw:{u:[15,8,85,60],l:[15,40,85,68]}};
+function schem(k){const s=SCHEM[k],P=PATTERNS[k],li=(a,b,t)=>a+(b-a)*t,uy=t=>li(s.u[1],s.u[3],t),ly=t=>li(s.l[1],s.l[3],t),x0=s.u[0],x1=s.u[2],n=6,startLow=k==='bearflag';
+ const pts=[];if(s.pole)pts.push([s.pole[0],s.pole[1]]);for(let i=0;i<=n;i++){const t=i/n,low=(i%2===1)!==startLow;pts.push([li(x0,x1,t),low?ly(t):uy(t)])}
+ const ex=x1+1,mid=(uy(1)+ly(1))/2,arr=d=>`<line x1="${ex}" y1="${mid}" x2="${ex+9}" y2="${mid-d*16}" stroke="var(--fg)" stroke-width="2" marker-end="url(#ah${k})" ${P.bias===0?'stroke-dasharray="2 2"':''}/>`;
+ return `<svg class="sch" viewBox="0 0 100 80" aria-label="${P.name}示意圖"><defs><marker id="ah${k}" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--fg)"/></marker></defs>
+ <line x1="${s.u[0]}" y1="${s.u[1]}" x2="${s.u[2]}" y2="${s.u[3]}" stroke="var(--res)" stroke-width="2"/><line x1="${s.l[0]}" y1="${s.l[1]}" x2="${s.l[2]}" y2="${s.l[3]}" stroke="var(--sup)" stroke-width="2"/>
+ <polyline points="${pts.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="var(--muted)" stroke-width="1.6"/>${P.bias===0?arr(1)+arr(-1):arr(P.bias)}</svg>`}
+
+/* ================= 圖表生成（seed 決定，可重現） ================= */
 function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuf(R,a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const rs=()=>Math.floor(Math.random()*4e9);
 function genScenario(key,level,seed){
  const P=PATTERNS[key],R=mb(seed),rnd=(a,b)=>a+(b-a)*R(),bars=[];
  let p=rnd(40,160);const p0=p,vb=rnd(.8,1.3)*1e6,pd=key==='sym'?(R()<.5?1:-1):P.pre,atr0=p*.014,pole=key==='bullflag'||key==='bearflag',nz={1:.7,2:1,3:1.3}[level];
@@ -82,7 +173,7 @@ function genScenario(key,level,seed){
  return{key,P,level,bars,fut,futN:10,preN,poleH,M,U,L:Lw,d,atr,entry,stop,target:tgt,m,idxE,hard,mn,mx,preDesc,pd}}
 function buildQs(sc,seed){
  const R=mb(seed+7),P=sc.P,d=sc.d,hard=sc.hard,key=sc.key,E=sc.entry,f=x=>x.toFixed(2),pc=x=>(x>=E?'+':'')+((x-E)/E*100).toFixed(1)+'%';
- const keys=Object.keys(PATTERNS),same=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat===P.cat)).slice(0,2),oth=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat!==P.cat));
+ const keys=PK,same=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat===P.cat)).slice(0,2),oth=shuf(R,keys.filter(k=>k!==key&&PATTERNS[k].cat!==P.cat));
  const pk=[key,...same];for(const o of oth){if(pk.length>=4)break;pk.push(o)}
  const op=(t,ok)=>({t,ok:!!ok}),qs=[];
  qs.push({it:0,p:'形態名稱是？',o:shuf(R,pk.map(k=>op(PATTERNS[k].name,k===key))),ex:P.name+'：'+P.feat});
@@ -101,71 +192,382 @@ function buildQs(sc,seed){
  const fr=hard?HARD_FAIL:P.fail,fp=shuf(R,[...keys.filter(k=>k!==key).map(k=>PATTERNS[k].fail),...GEN_FAIL]).filter(t=>t!==fr).slice(0,3);
  qs.push({it:6,p:'呢個判斷最可能出錯在？',o:shuf(R,[op(fr,1),...fp.map(t=>op(t))]),ex:fr});
  return qs}
-function drawChart(cv,sc,reveal){
+
+/* ================= 畫圖 ================= */
+function drawChart(cv,sc,o){o=(o&&typeof o==='object')?o:{reveal:!!o};const reveal=!!o.reveal;
+ const cs=(typeof document!=='undefined'&&typeof getComputedStyle!=='undefined')?getComputedStyle(document.documentElement):null,V=(n,d)=>(cs&&cs.getPropertyValue(n).trim())||d;
+ const BG=V('--chart-bg','#fff'),GR=V('--chart-grid','#eee'),AX=V('--chart-axis','#777'),RES=V('--res','#e65100'),SUP=V('--sup','#1565c0'),SIMC=V('--sim','#e65100'),USR=V('--user','#8e24aa');
  const dpr=(typeof window!=='undefined'&&window.devicePixelRatio)||1,W=760,H=460;cv.width=W*dpr;cv.height=H*dpr;
- const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#fff';g.fillRect(0,0,W,H);
+ const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=BG;g.fillRect(0,0,W,H);
  const vis=sc.bars,fut=reveal?sc.fut:[],all=vis.concat(fut),slots=vis.length+sc.futN,L=8,Rm=70,top=14,PH=300,vt=top+PH+16,VH=H-vt-14,sl=(W-L-Rm)/slots;
  let hi=Math.max(...all.map(b=>b.h)),lo=Math.min(...all.map(b=>b.l));
  if(reveal)[sc.entry,sc.stop,sc.target].forEach(v=>{hi=Math.max(hi,v);lo=Math.min(lo,v)});
  const pad=(hi-lo)*.06;hi+=pad;lo-=pad;const X=i=>L+(i+.5)*sl,Y=v=>top+(hi-v)/(hi-lo)*PH,vm=Math.max(...all.map(b=>b.v));
  g.font='11px sans-serif';g.textBaseline='middle';
- for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.strokeStyle='#eee';g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();g.fillStyle='#777';g.fillText(v.toFixed(2),W-Rm+4,y)}
+ for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.strokeStyle=GR;g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();g.fillStyle=AX;g.fillText(v.toFixed(2),W-Rm+4,y)}
  all.forEach((b,i)=>{const up=b.c>=b.o,col=up?'#d93025':'#0f9d58',x=X(i),w=sl*.62;g.strokeStyle=g.fillStyle=col;
   g.beginPath();g.moveTo(x,Y(b.h));g.lineTo(x,Y(b.l));g.stroke();g.fillRect(x-w/2,Math.min(Y(b.o),Y(b.c)),w,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));
   const vh=b.v/vm*VH;g.globalAlpha=i>=vis.length?.55:.8;g.fillRect(x-w/2,vt+VH-vh,w,vh);g.globalAlpha=1});
- g.fillStyle='#777';g.fillText('成交量',L+2,vt+6);
- g.fillStyle='#e65100';g.font='bold 12px sans-serif';g.fillText('模擬教學圖（非真實市場）　紅升綠跌',L+4,top+8);g.font='11px sans-serif';
- if(reveal){const p0=sc.preN,M=sc.M,lineSeg=(f,c,a,b,dash)=>{g.strokeStyle=c;g.lineWidth=2;g.setLineDash(dash?[6,4]:[]);g.beginPath();g.moveTo(X(p0+a),Y(f(a)));g.lineTo(X(p0+b),Y(f(b)));g.stroke();g.setLineDash([]);g.lineWidth=1};
-  lineSeg(sc.U,'#e65100',0,M-1);lineSeg(sc.U,'#e65100',M-1,M+3,1);lineSeg(sc.L,'#1565c0',0,M-1);lineSeg(sc.L,'#1565c0',M-1,M+3,1);
-  g.fillStyle='#e65100';g.fillText('阻力線＝供給',X(p0)+4,Y(sc.U(0))-10);g.fillStyle='#1565c0';g.fillText('支持線＝需求',X(p0)+4,Y(sc.L(0))+12);
-  if(sc.poleH){g.fillStyle='#555';g.fillText('旗桿',X(p0-5),Y(sc.bars[p0-1].c)+(sc.pd>0?-16:16))}
-  const xs=X(p0+sc.idxE);[[sc.entry,'#6a1b9a','入場',0],[sc.stop,'#455a64','止蝕',1],[sc.target,'#f9a825','目標',1]].forEach(([v,c,t,dash])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash(dash?[5,4]:[]);g.beginPath();g.moveTo(xs,Y(v));g.lineTo(W-Rm,Y(v));g.stroke();g.setLineDash([]);g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t+' '+v.toFixed(2),W-Rm+4,Y(v)+(t==='入場'?-8:0))});
-  const dx=X(vis.length-1)+sl/2;g.strokeStyle='#999';g.setLineDash([3,3]);g.beginPath();g.moveTo(dx,top);g.lineTo(dx,vt+VH);g.stroke();g.setLineDash([]);g.fillStyle='#555';g.font='11px sans-serif';g.fillText('後續走勢（答案揭示）→',dx+4,top+PH-6)}}
-const KEY='patternMC_v1';let S;
-function load(){try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{weak:{},items:{},hist:[],last:null,level:1};S.items=S.items||{};}
-const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
-let RD=null,CUR=null;const $=s=>document.getElementById(s),app=()=>$('app');
-function pick(cat){const ks=Object.keys(PATTERNS).filter(k=>PATTERNS[k].cat===cat),due=ks.filter(k=>S.weak[k]&&S.weak[k].due<=0).sort((a,b)=>S.weak[b].wrong-S.weak[a].wrong);
- if(due.length)return{k:due[0],rev:1};const c=ks.filter(k=>k!==RD.lastBy[cat]);return{k:c[Math.floor(Math.random()*c.length)],rev:0}}
-function startRound(level){S.level=level;let cats=['三角形','旗形','楔形'].sort(()=>Math.random()-.5);if(cats[0]===S.last)cats.push(cats.shift());RD={level,cats,n:0,res:[],lastBy:RD?RD.lastBy:{}};nextQ()}
-function nextQ(){const cat=RD.cats[RD.n],p=pick(cat),seed=Math.floor(Math.random()*4e9);RD.lastBy[cat]=p.k;const sc=genScenario(p.k,RD.level,seed);CUR={sc,qs:buildQs(sc,seed),rev:p.rev};renderQ()}
-function home(){load();const w=Object.entries(S.weak),it=Object.entries(S.items).filter(([k,v])=>v.w>0).sort((a,b)=>b[1].w-a[1].w);
- app().innerHTML=`<div class="card"><h1>📈 形態 MC 練習</h1><p>三角形・旗形・楔形｜每輪 3 題，三類交錯，錯咗隔幾題再出現。</p>
- <p class="small">全部圖表均為<b>模擬教學圖</b>，只作學習，非投資建議。</p>
- <h3>揀難度</h3><button data-l="1">初級</button><button data-l="2">中級</button><button data-l="3">高級（含假突破）</button></div>
- <div class="card"><h3>弱點清單</h3>${w.length?'<table><tr><th>形態</th><th>錯誤次數</th><th>幾題後重現</th></tr>'+w.map(([k,v])=>`<tr><td>${PATTERNS[k].name}</td><td>${v.wrong}</td><td>${v.due>0?v.due:'下一次輪到該類別就出'}</td></tr>`).join('')+'</table>':'<p class="small">暫時冇。</p>'}
- ${it.length?'<p class="small">項目錯誤：'+it.map(([k,v])=>`${ITEMS[k]} ${v.w}/${v.t}`).join('、')+'</p>':''}
- <button class="alt" id="rs">清除紀錄</button></div>`;
- document.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>startRound(+b.dataset.l));$('rs').onclick=()=>{if(confirm('確定清除？')){localStorage.removeItem(KEY);home()}}}
-function renderQ(){const{sc,qs}=CUR;
- app().innerHTML=`<div class="card"><span class="tag">第 ${RD.n+1}/3 題</span><span class="tag">${LV[RD.level]}</span><span class="tag sim">模擬教學圖</span>${CUR.rev?'<span class="tag">間隔重溫</span>':''}
- <p><b>市場</b>：SIM-${String.fromCharCode(65+Math.floor(Math.random()*26))}（模擬股票）　<b>時間框架</b>：日線　<b>前段趨勢</b>：${sc.preDesc}</p>
- <canvas id="cv"></canvas><p class="small">圖已截於形態尾部，後續走勢隱藏。${sc.hard?'留意最後一支K線同成交量。':''}</p>
- <h3>① 防事後孔明：先寫「我呢個判斷可能錯在邊」</h3><textarea id="why" placeholder="例如：我可能誤將對稱三角形當成上升三角形…"></textarea>
- <h3>② 作答（7 項，每項 1 分）</h3>${qs.map((q,i)=>`<div class="q"><b>${i+1}. ${ITEMS[q.it]}</b>：${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}</div>`).join('')}
- <p id="msg" class="bad"></p><button id="sub">提交批改</button></div>`;
- drawChart($('cv'),sc,false);
- $('sub').onclick=()=>{const why=$('why').value.trim();if(why.length<4){$('msg').textContent='請先完成①：寫低你覺得可能錯在邊。';return}
-  const ans=qs.map((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);return r?+r.value:-1});if(ans.includes(-1)){$('msg').textContent='仲有項目未答（第 '+(ans.indexOf(-1)+1)+' 項）。';return}grade(ans,why)}}
-function grade(ans,why){const{sc,qs}=CUR;let tot=0;const rows=qs.map((q,i)=>{const ok=q.o[ans[i]].ok;tot+=ok?1:0;return{q,ok,u:q.o[ans[i]].t,c:q.o.find(o=>o.ok).t}});
- Object.values(S.weak).forEach(w=>{if(w.due>0)w.due--});
- rows.forEach(r=>{const s=S.items[r.q.it]=S.items[r.q.it]||{w:0,t:0};s.t++;if(!r.ok)s.w++});
- const k=sc.key,nameOk=rows[0].ok;
- if(!nameOk||tot<5){const w=S.weak[k]=S.weak[k]||{wrong:0,due:0,streak:0};w.wrong++;w.due=2;w.streak=0}
- else if(S.weak[k]){const w=S.weak[k];w.streak++;if(w.streak>=2)delete S.weak[k]}
- S.last=RD.cats[RD.n];S.hist.push({t:Date.now(),k,lv:RD.level,s:tot});save();RD.res.push(tot);
- const bad=rows.find(r=>!r.ok);
- app().innerHTML=`<div class="card"><span class="tag">第 ${RD.n+1}/3 題</span><span class="tag sim">模擬教學圖</span><h1>得分 ${tot}/7　${sc.P.name}</h1>
- <p><b>第一性原理</b>：${sc.P.pr}</p><canvas id="cv"></canvas>
- <table><tr><th>項目</th><th>你揀</th><th>正解</th><th>分</th></tr>${rows.map(r=>`<tr><td>${ITEMS[r.q.it]}</td><td>${r.u}</td><td>${r.c}</td><td class="${r.ok?'ok':'bad'}">${r.ok?'✔ 1':'✘ 0'}</td></tr>`).join('')}</table>
- <div class="warn"><b>你事前寫嘅風險</b>：${why.replace(/</g,'&lt;')}<br>對照本形態常見失敗：${sc.hard?HARD_FAIL:sc.P.fail}</div>
- ${bad?`<p><b>最關鍵錯誤</b>：${ITEMS[bad.q.it]}。${bad.q.ex}<br>${DRILL[bad.q.it]}</p>`:'<p class="ok">全部答啱！</p>'}
+ g.fillStyle=AX;g.fillText('成交量',L+2,vt+6);
+ g.fillStyle=SIMC;g.font='bold 12px sans-serif';g.fillText('模擬教學圖（非真實市場）　紅升綠跌',L+4,top+8);g.font='11px sans-serif';
+ const p0=sc.preN,M=sc.M,lineSeg=(f,c,a,b,dash)=>{g.strokeStyle=c;g.lineWidth=2;g.setLineDash(dash?[6,4]:[]);g.beginPath();g.moveTo(X(p0+a),Y(f(a)));g.lineTo(X(p0+b),Y(f(b)));g.stroke();g.setLineDash([]);g.lineWidth=1};
+ if(reveal||o.lines){lineSeg(sc.U,RES,0,M-1);lineSeg(sc.L,SUP,0,M-1);if(reveal){lineSeg(sc.U,RES,M-1,M+3,1);lineSeg(sc.L,SUP,M-1,M+3,1)}
+  g.fillStyle=RES;g.fillText('阻力線＝供給',X(p0)+4,Y(sc.U(0))-10);g.fillStyle=SUP;g.fillText('支持線＝需求',X(p0)+4,Y(sc.L(0))+12);
+  if(sc.poleH){g.fillStyle=AX;g.fillText('旗桿',X(p0-5),Y(sc.bars[p0-1].c)+(sc.pd>0?-16:16))}}
+ if(reveal){const xs=X(p0+sc.idxE);[[sc.entry,'#8e24aa','入場',0],[sc.stop,AX,'止蝕',1],[sc.target,'#f9a825','目標',1]].forEach(([v,c,t,dash])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash(dash?[5,4]:[]);g.beginPath();g.moveTo(xs,Y(v));g.lineTo(W-Rm,Y(v));g.stroke();g.setLineDash([]);g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t+' '+v.toFixed(2),W-Rm+4,Y(v)+(t==='入場'?-8:0))});
+  const dx=X(vis.length-1)+sl/2;g.strokeStyle=AX;g.setLineDash([3,3]);g.beginPath();g.moveTo(dx,top);g.lineTo(dx,vt+VH);g.stroke();g.setLineDash([]);g.fillStyle=AX;g.font='11px sans-serif';g.fillText('後續走勢（答案揭示）→',dx+4,top+PH-6)}
+ const dot=pt=>{g.fillStyle=USR;g.beginPath();g.arc(X(pt.i),Y(pt.p),4.5,0,7);g.fill()};
+ const uline=(a,b,dash)=>{const f=i=>a.p+(b.p-a.p)*(i-a.i)/((b.i-a.i)||1e-6),i0=Math.min(p0-1,a.i,b.i),i1=Math.max(p0+M,a.i,b.i);g.strokeStyle=USR;g.lineWidth=2.4;g.setLineDash(dash||[]);g.beginPath();g.moveTo(X(i0),Y(f(i0)));g.lineTo(X(i1),Y(f(i1)));g.stroke();g.setLineDash([]);g.lineWidth=1};
+ if(o.user)o.user.forEach(([a,b])=>{uline(a,b,[3,3]);dot(a);dot(b)});
+ if(o.pts)o.pts.forEach(dot);
+ if(o.preview){uline(o.preview[0],o.preview[1],[2,4]);dot(o.preview[0])}
+ return{ix:x=>(x-L)/sl-.5,iy:y=>hi-(y-top)/PH*(hi-lo)}}
+
+/* ================= 儲存 ================= */
+const KEY='patternMC_v2',OLD='patternMC_v1',DAY=864e5,now=()=>Date.now();
+const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const dstr=t=>{const d=new Date(t);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()},today=()=>dstr(now());
+let S=null;
+function fresh(){return{ver:2,cards:{},rating:{},items:{},pi:{},conf:{},calib:{sure:{n:0,ok:0},guess:{n:0,ok:0}},hist:[],flash:[],mistakes:[],learned:{},day:{d:'',n:0},streak:{n:0,last:''},
+ settings:{premortem:true,goal:15,roundLen:5,flashMs:4000,flashAuto:true,theme:'auto'}}}
+function migrate(o,s){
+ if(o.items)for(const k in o.items){const t=o.items[k].t||0;s.items[k]={n:t,ok:t-(o.items[k].w||0)}}
+ if(o.weak)for(const k in o.weak)s.cards['P:'+k]={ef:2.3,iv:0,reps:0,lapses:o.weak[k].wrong||1,due:now(),seen:o.weak[k].wrong||1,ok:0};
+ if(o.hist)s.hist=o.hist.map(h=>({t:h.t,m:'classic',k:h.k,lv:h.lv,s:h.s,max:7}))}
+function load(){let s=null;try{s=JSON.parse(LS.get(KEY))}catch(e){}
+ if(!s||s.ver!==2){s=fresh();let o=null;try{o=JSON.parse(LS.get(OLD))}catch(e){}if(o)migrate(o,s)}
+ const f=fresh();for(const k in f)if(s[k]===undefined)s[k]=f[k];for(const k in f.settings)if(s.settings[k]===undefined)s.settings[k]=f.settings[k];
+ S=s;applyTheme()}
+const save=()=>LS.set(KEY,JSON.stringify(S));
+function applyTheme(){if(typeof document==='undefined')return;const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
+
+/* ================= 學習引擎 ================= */
+// SM-2 間隔重複：q 0–5（<3 = 唔記得）
+function card(id){return S.cards[id]||(S.cards[id]={ef:2.5,iv:0,reps:0,lapses:0,due:0,seen:0,ok:0})}
+function review(id,q){const c=card(id);c.seen++;c.last=now();if(q>=3)c.ok++;
+ if(q<3){c.reps=0;c.lapses++;c.iv=0;c.due=now()+10*60e3}
+ else{c.reps++;c.iv=c.reps===1?1:c.reps===2?3:Math.round(c.iv*c.ef);if(q===3)c.iv=Math.max(1,Math.round(c.iv*.6));c.due=now()+c.iv*DAY}
+ c.ef=Math.max(1.3,c.ef+.1-(5-q)*(.08+(5-q)*.02));return c}
+// Elo 掌握度：每個形態一個評分，難度 = 級別
+const D_LV={1:900,2:1050,3:1200};
+const rating=k=>S.rating[k]==null?1000:S.rating[k];
+const expect=(r,lv)=>1/(1+Math.pow(10,(D_LV[lv]-r)/400));
+function elo(k,lv,s,K){S.rating[k]=Math.round(rating(k)+(K||32)*(s-expect(rating(k),lv)))}
+const mastery=k=>Math.round(cl((rating(k)-850)/500*100,0,100));
+// 適度難度：揀預期正確率最接近 70% 嘅級別
+function chooseLevel(k){const r=rating(k);let best=1,bd=9;for(const lv of[1,2,3]){const d=Math.abs(expect(r,lv)-.7);if(d<bd){bd=d;best=lv}}return best}
+function bump(o,k,ok){const x=o[k]||(o[k]={n:0,ok:0});x.n++;if(ok)x.ok++}
+function recConf(a,b){if(!a||!b)return;const r=S.conf[a]||(S.conf[a]={});r[b]=(r[b]||0)+1}
+function topConfusions(){const out=[];for(const a in S.conf)for(const b in S.conf[a])if(a!==b)out.push({a,b,n:S.conf[a][b]});return out.sort((x,y)=>y.n-x.n)}
+function tick(){const t=today();if(S.day.d!==t)S.day={d:t,n:0};S.day.n++;if(S.streak.last!==t){S.streak.n=S.streak.last===dstr(now()-DAY)?S.streak.n+1:1;S.streak.last=t}}
+const streakNow=()=>(S.streak.last===today()||S.streak.last===dstr(now()-DAY))?S.streak.n:0;
+const dueCount=()=>Object.values(S.cards).filter(c=>c.seen&&c.due<=now()).length+S.mistakes.filter(m=>m.due<=now()).length;
+const avgMastery=()=>Math.round(PK.reduce((a,k)=>a+mastery(k),0)/PK.length);
+function fmtDue(t){const d=t-now();if(d<=0)return'已到期';if(d<3600e3)return Math.ceil(d/60e3)+' 分鐘後';if(d<DAY)return Math.round(d/3600e3)+' 小時後';return Math.round(d/DAY)+' 日後'}
+// 智能揀題：到期 > 即時重溫 > 新形態 > 弱項；交錯（避免連續同一形態／同類）
+function pickSmart(ses,pre){pre=pre||'P:';const t=now();
+ if(ses.focus&&ses.n===0)return{k:ses.focus,why:'focus'};
+ const rl=ses.relearn.find(r=>r.wait<=0&&r.k!==ses.lastK);if(rl){ses.relearn=ses.relearn.filter(x=>x!==rl);return{k:rl.k,why:'relearn'}}
+ let best=null,bs=-1e9;
+ for(const k of PK){const c=S.cards[pre+k];let sc=Math.random()*15,why;
+  if(!c||!c.seen){sc+=S.learned[k]?55:45;why='new'}else if(c.due<=t){sc+=100+Math.min(30,(t-c.due)/DAY*5);why='due'}else why='practice';
+  sc+=(100-mastery(k))*.5;if(pre==='P:'&&S.mistakes.some(m=>m.key===k&&m.due<=t))sc+=20;
+  if(k===ses.lastK)sc-=1000;if(PATTERNS[k].cat===ses.lastCat)sc-=30;
+  if(sc>bs){bs=sc;best={k,why}}}
+ return best}
+function afterAnswer(k,failed){SES.relearn.forEach(r=>r.wait--);if(failed)SES.relearn.push({k,wait:2});SES.lastK=k;SES.lastCat=PATTERNS[k].cat}
+function recommend(){const t=now(),R=[],add=(id,ic,ti,d,go)=>{if(!R.some(r=>r.id===id))R.push({id,ic,t:ti,d,go})};
+ const unl=PK.filter(k=>!S.learned[k]);
+ if(unl.length&&S.hist.length<6)add('learn','📚',`先學「${PATTERNS[unl[0]].name}」`,'未睇過嘅形態，先用示範例題建立概念，再做題。',()=>learnDetail(unl[0]));
+ const dueL=PK.filter(k=>S.cards['L:'+k]&&S.cards['L:'+k].due<=t);
+ if(dueL.length)add('recall','🧠',`主動回憶：${dueL.length} 張知識卡到期`,'唔睇答案先講出重點，再對答案自評。',()=>startRecall(dueL));
+ const dueM=S.mistakes.filter(m=>m.due<=t);
+ if(dueM.length)add('mist','📕',`錯題本：${dueM.length} 題到期重做`,'同一幅圖隔一日再做，驗證係咪真係識咗。',()=>startMistakes());
+ const tc=topConfusions()[0];
+ if(tc&&tc.n>=2)add('disc','⚖️',`你曾 ${tc.n} 次將「${PATTERNS[tc.a].name}」認錯做「${PATTERNS[tc.b].name}」`,'做對比辨別，專練兩者分別。',()=>startDiscrim([tc.a,tc.b]));
+ const dueP=PK.filter(k=>S.cards['P:'+k]&&S.cards['P:'+k].seen&&S.cards['P:'+k].due<=t);
+ if(dueP.length)add('smart','🎯',`智能練習：${dueP.length} 個形態到期複習`,'按遺忘曲線安排，難度自動調節。',()=>startSmart());
+ const fl=S.flash.slice(-30),fa=fl.length?fl.filter(f=>f.ok).length/fl.length:0;
+ if(fl.length<10||fa<.8)add('flash','⚡','快閃辨識：練第一眼直覺',fl.length?`最近準確率 ${Math.round(fa*100)}%，目標 80% 以上。`:'幾秒內認出形態，建立直覺。',()=>startFlash());
+ add('smart','🎯','智能練習','自動揀最需要練嘅形態同難度。',()=>startSmart());
+ return R}
+
+/* ================= UI 基建 ================= */
+let SES=null,CUR=null,KEYH=null;
+const $=s=>document.getElementById(s),app=()=>$('app'),on=(id,fn)=>{const e=$(id);if(e)e.onclick=fn};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function view(h){KEYH=null;app().innerHTML=h;if(typeof window!=='undefined'&&window.scrollTo)window.scrollTo(0,0)}
+const back='<button class="alt sm" onclick="home()">← 主頁</button>';
+const mbar=m=>`<span class="mbar"><i style="width:${m}%;background:${m>=80?'var(--ok)':m>=50?'var(--warn)':'var(--bad)'}"></i></span>${m}%`;
+const simName=()=>'SIM-'+String.fromCharCode(65+Math.floor(Math.random()*26));
+function toData(cv,T,e){const r=cv.getBoundingClientRect();return{i:T.ix((e.clientX-r.left)*760/r.width),p:T.iy((e.clientY-r.top)*460/r.height)}}
+if(typeof document!=='undefined')document.addEventListener('keydown',e=>{if(KEYH&&!/TEXTAREA|INPUT|SELECT/.test(e.target.tagName))KEYH(e)});
+
+/* ================= 主頁 ================= */
+function home(){if(!S)load();SES=null;CUR=null;
+ const R=recommend(),g=S.settings.goal,dn=S.day.d===today()?S.day.n:0,mDue=S.mistakes.filter(m=>m.due<=now()).length;
+ const learnedN=PK.filter(k=>S.learned[k]).length,f20=S.flash.slice(-20),facc=f20.length>=20?f20.filter(x=>x.ok).length/20:0,allM=PK.map(mastery),
+  h3=S.hist.filter(h=>h.lv===3).slice(-10),h3avg=h3.length>=5?h3.reduce((a,h)=>a+h.s,0)/h3.length:0;
+ const steps=[[learnedN===7,`學齊 7 個形態（學習模式 ${learnedN}/7）`],[facc>=.8,`快閃辨識最近 20 題 ≥80%（${f20.length>=20?Math.round(facc*100)+'%':f20.length+'/20 題'}）`],
+  [allM.every(m=>m>=50),`全部形態掌握度 ≥50%（最低 ${Math.min(...allM)}%）`],[h3avg>=5,`高級假突破題平均 ≥5/7（${h3.length>=5?h3avg.toFixed(1):h3.length+'/5 題'}）`],[allM.every(m=>m>=80),'全部形態掌握度 ≥80%：畢業 🎓']];
+ const MODES=[['smart','🎯','智能練習',`間隔重複＋自適應難度＋交錯練習，每輪 ${S.settings.roundLen} 題`],['learn','📚','學習模式','示範例題、口訣、示意圖，之後主動回憶'],
+  ['flash','⚡','快閃辨識','圖只顯示幾秒，練第一眼直覺'],['discrim','⚖️','對比辨別','兩幅相似形態，揀出指定嗰幅'],['draw','✏️','畫線練習','自己畫阻力／支持線，再對答案'],
+  ['mist','📕',`錯題本（${S.mistakes.length}${mDue?'，'+mDue+' 到期':''}）`,'同一幅圖隔日重做，直到做啱'],['stats','📊','統計與設定','掌握度、混淆矩陣、信心校準、匯出']];
+ view(`<div class="card"><h1>📈 形態訓練營</h1><div class="small">三角形・旗形・楔形｜全部為模擬教學圖，只作學習，非投資建議。</div>
+ <div class="stats4"><div><b>${dn}/${g}</b><span>今日題數</span></div><div><b>${streakNow()} 🔥</b><span>連續日數</span></div><div><b>${dueCount()}</b><span>到期複習</span></div><div><b>${avgMastery()}%</b><span>平均掌握</span></div></div>
+ <div class="bar"><i style="width:${Math.min(100,dn/g*100)}%"></i></div></div>
+ <div class="card"><h3 style="margin-top:0">🤖 智能建議</h3>${R.slice(0,3).map((r,i)=>`<button class="rec ${i?'':'main'}" id="r${i}">${r.ic} ${r.t}<span>${r.d}</span></button>`).join('')}</div>
+ <div class="grid">${MODES.map(m=>`<div class="mode" data-go="${m[0]}"><b>${m[1]} ${m[2]}</b><p>${m[3]}</p></div>`).join('')}
+ <div class="mode"><b>🧩 經典模式</b><p>自選難度，每輪 3 題，三類交錯</p><button class="sm" data-l="1">初級</button><button class="sm" data-l="2">中級</button><button class="sm" data-l="3">高級</button></div></div>
+ <div class="card"><h3 style="margin-top:0">🗺️ 學習路徑</h3><ol class="path">${steps.map(([d,t])=>`<li class="${d?'done':''}">${d?'✅':'⬜'} ${t}</li>`).join('')}</ol></div>
+ <div class="card"><details><summary>🔬 呢個訓練營用咗咩學習法？</summary><ul class="small" style="font-size:13px">
+ <li><b>間隔重複（SM-2）</b>：答錯 10 分鐘後／同一輪隔 2 題再出；答啱就 1 → 3 → 7… 日咁拉長間隔，喺就快忘記前複習。</li>
+ <li><b>主動回憶</b>：知識卡先自己講出重點，再對答案自評，比重讀筆記有效得多。</li>
+ <li><b>交錯練習</b>：智能練習避免連續同類形態，迫你每次先分類再命名。</li>
+ <li><b>對比辨別</b>：自動針對你最常混淆嘅一對形態，並逐項列出分別。</li>
+ <li><b>生成效應</b>：畫線練習要你自己畫阻力／支持線，比睇現成答案記得更牢。</li>
+ <li><b>信心校準</b>：唔肯定就剔「🎲 估」，估中唔當識；冇剔但答錯＝盲點，會加倍複習。</li>
+ <li><b>自我解釋</b>：答錯後用自己說話寫低原因，存入錯題本，重做時會顯示。</li>
+ <li><b>漸退鷹架</b>：掌握度低時自動幫你畫好趨勢線（示範→半引導→獨立），之後逐步移除。</li>
+ <li><b>適度難度</b>：用 Elo 評分揀難度，令預期正確率維持約 70%——唔會太易亦唔會太挫敗。</li>
+ <li><b>事前驗屍</b>：作答前先寫低可能錯喺邊，減少事後孔明。</li></ul></details></div>`);
+ R.slice(0,3).forEach((r,i)=>on('r'+i,r.go));
+ const GO={smart:startSmart,learn:learnHome,flash:startFlash,discrim:()=>startDiscrim(),draw:startDraw,mist:mistakesHome,stats:statsView};
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>GO[b.dataset.go]());
+ document.querySelectorAll('[data-l]').forEach(b=>b.onclick=e=>{e.stopPropagation();startClassic(+b.dataset.l)})}
+
+/* ================= 學習模式 ================= */
+function learnHome(){view(`<div class="card">${back}<h2>📚 學習模式</h2><p class="small">揀一個形態睇示範例題（有齊入場、止蝕、目標標示）。睇完記得做「主動回憶」——自己講一次，記憶先會鞏固。</p>
+ <button id="rall">🧠 主動回憶全部 7 張知識卡</button></div>
+ <div class="lgrid">${PK.map(k=>{const P=PATTERNS[k],c=S.cards['L:'+k];return`<div class="lcard" data-k="${k}">${schem(k)}<b>${P.name}</b> ${S.learned[k]?'✅':''}<div class="small">${P.cat}｜${P.mn}</div><div class="small">掌握 ${mbar(mastery(k))}</div>${c?`<div class="small">知識卡：${fmtDue(c.due)}</div>`:''}</div>`}).join('')}</div>`);
+ on('rall',()=>startRecall(PK.slice()));document.querySelectorAll('.lcard').forEach(b=>b.onclick=()=>learnDetail(b.dataset.k))}
+function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const P=PATTERNS[k],sc=genScenario(k,lv,rs());
+ view(`<div class="card">${back} <button class="alt sm" id="lh">← 形態列表</button>
+ <div class="tags"><span class="tag">${P.cat}</span><span class="tag">示範例題・${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
+ <h2>${P.name}</h2><p class="mn">💡 口訣：${P.mn}</p>
+ <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"><div style="flex:0 0 160px">${schem(k)}<div class="small">示意圖：橙＝阻力、藍＝支持、箭咀＝偏向</div></div>
+ <div style="flex:1 1 260px"><p><b>特徵</b>：${P.feat}</p><p><b>第一性原理</b>：${P.pr}</p><p><b>偏向</b>：${biasTxt(P.bias)}</p></div></div>
+ <div class="cvwrap"><canvas id="cv"></canvas></div>
+ <table><tr><th>入場</th><td>收市價有效突破${P.bias===0?'（上或下，等方向確認）':P.bias>0?'上軌':'下軌'}，並伴隨成交量明顯放大；突破K縮量＝未確認。</td></tr>
+ <tr><th>止蝕</th><td>形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。</td></tr><tr><th>目標</th><td>${methOf(P)}。</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
+ <h3>⚖️ 易混淆形態</h3>${SIMILAR[k].map(b=>diffBox(k,b)).join('')}
+ <h3>下一步</h3><button id="ex1" class="alt">🔄 換個例子</button><button id="ex2" class="alt">中級例子</button><button id="ex3" class="alt">高級（假突破）例子</button><br>
+ <button id="rc">🧠 主動回憶呢個形態</button><button id="fq">🎯 即刻做一題</button></div>`);
+ drawChart($('cv'),sc,{reveal:true});
+ on('lh',learnHome);on('ex1',()=>learnDetail(k,lv));on('ex2',()=>learnDetail(k,2));on('ex3',()=>learnDetail(k,3));on('rc',()=>startRecall([k]));on('fq',()=>startSmart(k))}
+function startRecall(keys){SES={mode:'recall',list:keys,n:0,total:keys.length,res:[]};nextRecall()}
+function nextRecall(){if(SES.n>=SES.total)return recallSummary();const k=SES.list[SES.n],P=PATTERNS[k];
+ view(`<div class="card">${back}<div class="tags"><span class="tag">🧠 主動回憶 ${SES.n+1}/${SES.total}</span></div><h2>${P.name}</h2>
+ <p>唔好睇答案，先喺腦海（或者下面）答：</p><ol><li>兩條線點樣傾？有冇旗桿？</li><li>偏向邊面？點解（邊方較急）？</li><li>入場、止蝕、目標點計？</li><li>最常見點樣出錯？</li></ol>
+ <textarea id="ra" placeholder="寫低你記得嘅…（可以留空，但寫出嚟效果更好）"></textarea><button id="show">顯示答案</button><div id="ans"></div></div>`);
+ on('show',()=>{$('show').hidden=true;const mine=$('ra').value.trim();
+  $('ans').innerHTML=`${mine?`<div class="warn"><b>你寫嘅</b>：${esc(mine)}</div>`:''}<div style="max-width:180px">${schem(k)}</div><div class="answer">
+  <p><b>1.</b> 上軌${P.up}、下軌${P.lo}，兩線${P.shape}${P.pole?'；之前有急速旗桿':''}。${P.feat}</p><p><b>2.</b> ${biasTxt(P.bias)}。${P.pr}</p>
+  <p><b>3.</b> 入場：收市有效突破＋放量；止蝕：形態對側軌道外；目標：${methOf(P)}。</p><p><b>4.</b> ${P.fail}</p><p class="mn">💡 ${P.mn}</p></div>
+  <h3>自評：你記得幾多？</h3><div class="rate">${[[1,'😵 唔記得'],[3,'🤔 模糊'],[4,'🙂 記得'],[5,'😎 好熟']].map(([q,t])=>`<button data-q="${q}">${t}</button>`).join('')}</div>`;
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{review('L:'+k,+b.dataset.q);S.learned[k]=true;tick();save();SES.res.push(+b.dataset.q);SES.n++;nextRecall()})});
+ KEYH=e=>{if(e.key==='Enter'&&!$('show').hidden)$('show').click()}}
+function recallSummary(){const weak=SES.list.filter((k,i)=>SES.res[i]<3);
+ view(`<div class="card"><h2>🧠 主動回憶完成</h2><p>${SES.list.map((k,i)=>`${PATTERNS[k].name}：${{1:'😵',3:'🤔',4:'🙂',5:'😎'}[SES.res[i]]}　下次 ${fmtDue(S.cards['L:'+k].due)}`).join('<br>')}</p>
+ ${weak.length?`<p class="warn">唔記得：${weak.map(k=>PATTERNS[k].name).join('、')}——10 分鐘後會再到期。建議即刻睇返示範例題。</p>`:''}
+ <button id="sm">🎯 去智能練習</button><button class="alt" id="h">返回主頁</button></div>`);on('sm',()=>startSmart());on('h',home)}
+
+/* ================= 做題（智能／經典／錯題） ================= */
+function newSes(mode,total,extra){return Object.assign({mode,n:0,total,res:[],relearn:[],lastK:null,lastCat:null,m0:{}},extra||{})}
+function startSmart(focus){if(!S)load();SES=newSes('smart',S.settings.roundLen,{focus:typeof focus==='string'?focus:null});nextQuiz()}
+function startClassic(level){SES=newSes('classic',3,{level,cats:['三角形','旗形','楔形'].sort(()=>Math.random()-.5),lastBy:{}});nextQuiz()}
+function startMistakes(){const t=now(),list=S.mistakes.slice().sort((a,b)=>a.due-b.due);if(!list.length)return mistakesHome();SES=newSes('mistake',Math.min(5,list.length),{list:list.slice(0,5)});nextQuiz()}
+function startMistakeOne(id){const m=S.mistakes.find(x=>x.id===id);if(!m)return;SES=newSes('mistake',1,{list:[m]});nextQuiz()}
+function nextQuiz(){let k,lv,seed=rs(),tag='',scaf='hint',mist=null;
+ if(SES.mode==='smart'){const p=pickSmart(SES);k=p.k;lv=chooseLevel(k);
+  const m=S.mistakes.find(x=>x.key===k&&x.due<=now());
+  if(m&&p.why!=='relearn'&&Math.random()<.6){mist=m;lv=m.lv;seed=m.seed;tag='📕 錯題重現'}
+  else tag={relearn:'🔁 即時重溫',due:'📅 間隔複習',new:'✨ 新形態',practice:'💪 鞏固',focus:'🎯 指定形態'}[p.why];
+  const c=S.cards['P:'+k];if(!mist&&mastery(k)<35&&(!c||c.seen<2))scaf='lines'}
+ else if(SES.mode==='classic'){const cat=SES.cats[SES.n],ks=PK.filter(x=>PATTERNS[x].cat===cat),t=now(),due=ks.filter(x=>S.cards['P:'+x]&&S.cards['P:'+x].seen&&S.cards['P:'+x].due<=t);
+  if(due.length){k=due[0];tag='📅 間隔複習'}else{const c=ks.filter(x=>x!==SES.lastBy[cat]);k=c[Math.floor(Math.random()*c.length)]}SES.lastBy[cat]=k;lv=SES.level}
+ else{mist=SES.list[SES.n];k=mist.key;lv=mist.lv;seed=mist.seed;tag='📕 錯題重做'}
+ const sc=genScenario(k,lv,seed);CUR={sc,qs:buildQs(sc,seed+(mist?(mist.tries+1)*101:0)),seed,tag,scaf,hint:scaf==='lines',mist};renderQuiz()}
+function renderQuiz(){const{sc,qs}=CUR,pm=S.settings.premortem;
+ view(`<div class="card">${back}<div class="tags"><span class="tag">第 ${SES.n+1}/${SES.total} 題</span><span class="tag">${LV[sc.level]}</span>${CUR.tag?`<span class="tag hl">${CUR.tag}</span>`:''}<span class="tag sim">模擬教學圖</span></div>
+ <p><b>市場</b>：${simName()}（模擬股票）　<b>時間框架</b>：日線　<b>前段趨勢</b>：${sc.preDesc}</p>
+ ${CUR.mist&&CUR.mist.note?`<div class="warn"><b>你上次嘅自我解釋</b>：${esc(CUR.mist.note)}</div>`:''}
+ <div class="cvwrap"><canvas id="cv"></canvas></div>
+ <p class="small" id="cvnote">${CUR.scaf==='lines'?'🪜 鷹架模式：已幫你畫好兩條線，專心理解形態。掌握度提升後會自動移除。':'圖已截於形態尾部，後續走勢隱藏。'}${sc.hard?' 留意最後一支K線同成交量。':''}</p>
+ ${CUR.scaf!=='lines'?'<button class="alt sm" id="hint">💡 提示：顯示趨勢線（本題記憶評分會打折）</button>':''}
+ ${pm?`<h3>① 事前驗屍：先寫「我呢個判斷可能錯在邊」</h3><textarea id="why" placeholder="例如：我可能誤將對稱三角形當成上升三角形…"></textarea>`:''}
+ <h3>${pm?'② ':''}作答（7 項，每項 1 分）</h3><p class="small">唔肯定就剔「🎲 估」——估中唔當識，系統會提早再考；冇剔但答錯＝盲點。</p>
+ ${qs.map((q,i)=>`<div class="q"><b>${i+1}. ${ITEMS[q.it]}</b>：${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}<label class="guess"><input type="checkbox" id="g${i}"> 🎲 估</label></div>`).join('')}
+ <p id="msg" class="bad"></p><button id="sub">提交批改</button></div>`);
+ drawChart($('cv'),sc,{lines:CUR.hint});
+ on('hint',()=>{CUR.hint=true;drawChart($('cv'),sc,{lines:true});$('hint').remove();$('cvnote').textContent='💡 已顯示趨勢線（提示）。'});
+ on('sub',()=>{const why=pm?$('why').value.trim():null;if(pm&&why.length<4){$('msg').textContent='請先完成①：寫低你覺得可能錯在邊（或者喺設定關閉事前驗屍）。';$('why').focus();return}
+  const ans=qs.map((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);return r?+r.value:-1});if(ans.includes(-1)){$('msg').textContent='仲有項目未答（第 '+(ans.indexOf(-1)+1)+' 項）。';return}
+  gradeQuiz(ans,qs.map((q,i)=>$('g'+i).checked),why)})}
+function gradeQuiz(ans,gs,why){const{sc,qs}=CUR,k=sc.key,P=sc.P;let tot=0,eff=0;
+ if(SES.m0[k]==null)SES.m0[k]=mastery(k);const m0=mastery(k),pi=S.pi[k]||(S.pi[k]={});
+ const rows=qs.map((q,i)=>{const ok=q.o[ans[i]].ok;tot+=ok?1:0;eff+=ok?(gs[i]?.5:1):0;bump(S.items,q.it,ok);bump(pi,q.it,ok);bump(S.calib,gs[i]?'guess':'sure',ok);
+  return{q,ok,g:gs[i],u:q.o[ans[i]].t,c:q.o.find(o=>o.ok).t}});
+ const chosenKey=PK.find(x=>PATTERNS[x].name===rows[0].u);recConf(k,chosenKey);
+ const lucky=rows.filter(r=>r.ok&&r.g),blind=rows.filter(r=>!r.ok&&!r.g),wrongIt=rows.filter(r=>!r.ok).map(r=>r.q.it);
+ let q;if(!rows[0].ok)q=1;else if(tot<5)q=2;else if(lucky.length||CUR.hint)q=3;else if(tot===7)q=5;else q=4;
+ const c=review('P:'+k,q);elo(k,sc.level,(eff/7)*(CUR.hint?.8:1));afterAnswer(k,q<3);
+ let mref=null;
+ if(CUR.mist){mref=CUR.mist;mref.tries++;if(!wrongIt.length&&!lucky.length){S.mistakes=S.mistakes.filter(x=>x!==mref);mref.cleared=true}else{mref.due=now()+DAY;mref.wrong=wrongIt}}
+ else if(wrongIt.length){mref={id:now().toString(36)+k,key:k,lv:sc.level,seed:CUR.seed,wrong:wrongIt,t:now(),due:now()+DAY,tries:0,note:''};S.mistakes.unshift(mref);if(S.mistakes.length>60)S.mistakes.length=60}
+ S.hist.push({t:now(),m:SES.mode,k,lv:sc.level,s:tot,max:7,q});if(S.hist.length>500)S.hist.splice(0,S.hist.length-500);tick();save();SES.res.push(tot);
+ const bad=rows.find(r=>!r.ok),m1=mastery(k);
+ view(`<div class="card"><div class="tags"><span class="tag">第 ${SES.n+1}/${SES.total} 題</span><span class="tag">${LV[sc.level]}</span>${CUR.tag?`<span class="tag hl">${CUR.tag}</span>`:''}<span class="tag sim">模擬教學圖</span></div>
+ <h1>得分 ${tot}/7　${P.name}</h1><p class="mn">💡 口訣：${P.mn}</p><p><b>第一性原理</b>：${P.pr}</p>
+ <div class="cvwrap"><canvas id="cv"></canvas></div>
+ <table><tr><th>項目</th><th>你揀</th><th>正解</th><th>分</th></tr>${rows.map(r=>`<tr class="${!r.ok&&!r.g?'blind':''}"><td>${ITEMS[r.q.it]}${r.g?' 🎲':''}</td><td>${r.u}</td><td>${r.ok?'—':r.c}</td><td class="${r.ok?'ok':'bad'}">${r.ok?'✔ 1':'✘ 0'}</td></tr>`).join('')}</table>
+ ${blind.length?`<div class="badbox">⚠️ <b>盲點 ${blind.length} 項</b>（${blind.map(r=>ITEMS[r.q.it]).join('、')}）：你冇剔「估」但答錯——「好肯定但錯」最危險，已加入錯題本。</div>`:''}
+ ${lucky.length?`<p class="small">🎲 估中 ${lucky.length} 項（${lucky.map(r=>ITEMS[r.q.it]).join('、')}）：唔當識，會提早再考。</p>`:''}
+ ${!rows[0].ok&&chosenKey?diffBox(k,chosenKey):''}
+ ${why!=null?`<div class="warn"><b>你事前寫嘅風險</b>：${esc(why)}<br>對照本形態常見失敗：${sc.hard?HARD_FAIL:P.fail}</div>`:''}
+ ${bad?`<p><b>最關鍵錯誤</b>：${ITEMS[bad.q.it]}。${bad.q.ex}<br><span class="small">${DRILL[bad.q.it]}</span></p>`:'<div class="okbox">全部答啱！</div>'}
+ ${mref&&mref.cleared?'<div class="okbox">📕 呢題錯題已經做啱，移出錯題本 🎉</div>':''}
+ <div class="srs">📅 下次複習「${P.name}」：${fmtDue(c.due)}　｜　掌握度 ${m0}% → <b>${m1}%</b>${m1>m0?' ⬆️':m1<m0?' ⬇️':''}</div>
+ ${wrongIt.length?`<h3>✍️ 自我解釋（選填，會存入錯題本）</h3><textarea id="se" placeholder="用自己嘅說話寫：點解正解係啱？下次見到點認？">${mref&&mref.note?esc(mref.note):''}</textarea>`:''}
  <p class="small">答案線：橙＝阻力（供給）、藍＝支持（需求）、紫＝入場、灰虛線＝止蝕、黃虛線＝目標。教學用途，非投資建議。</p>
- <button id="nx">${RD.n<2?'下一題':'完成本輪'}</button></div>`;
- drawChart($('cv'),sc,true);$('nx').onclick=()=>{if(RD.n<2){RD.n++;nextQ()}else summary()}}
-function summary(){const t=RD.res.reduce((a,b)=>a+b,0);
- app().innerHTML=`<div class="card"><h1>本輪完成：${t}/21</h1><p>各題：${RD.res.join(' / ')}</p><p class="small">答錯嘅形態已加入弱點清單，之後會隔幾題再出現。</p><button id="a">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`;
- $('a').onclick=()=>startRound(RD.level);$('h').onclick=()=>home()}
+ <button id="nx">${SES.n<SES.total-1?'下一題':'完成本輪'}</button></div>`);
+ drawChart($('cv'),sc,{reveal:true});
+ on('nx',()=>{const se=$('se');if(se&&mref&&se.value.trim()){mref.note=se.value.trim();save()}if(SES.n<SES.total-1){SES.n++;nextQuiz()}else quizSummary()})}
+function quizSummary(){const t=SES.res.reduce((a,b)=>a+b,0),mx=SES.res.length*7,R=recommend()[0],mode=SES.mode,lvl=SES.level;
+ view(`<div class="card"><h1>本輪完成：${t}/${mx}</h1><p>各題：${SES.res.join(' / ')}</p>
+ <table><tr><th>形態</th><th>掌握度變化</th><th>下次複習</th></tr>${Object.entries(SES.m0).map(([k,m])=>`<tr><td>${PATTERNS[k].name}</td><td>${m}% → ${mbar(mastery(k))}</td><td>${S.cards['P:'+k]?fmtDue(S.cards['P:'+k].due):'—'}</td></tr>`).join('')}</table>
+ <h3>下一步建議</h3><button class="rec main" id="r0">${R.ic} ${R.t}<span>${R.d}</span></button>
+ <button id="again">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`);
+ on('r0',R.go);on('h',home);on('again',()=>mode==='classic'?startClassic(lvl):mode==='mistake'?startMistakes():startSmart())}
+
+/* ================= 快閃辨識 ================= */
+function startFlash(){SES=newSes('flash',10,{rts:[],miss:[]});nextFlash()}
+function nextFlash(){if(SES.n>=SES.total)return flashSummary();const p=pickSmart(SES,'F:'),k=p.k,lv=mastery(k)>=70?chooseLevel(k):Math.min(2,chooseLevel(k)),sc=genScenario(k,lv,rs()),ms=S.settings.flashMs;
+ CUR={sc,k,lv,t0:0,done:false};
+ view(`<div class="card">${back}<div class="tags"><span class="tag">⚡ 快閃 ${SES.n+1}/${SES.total}</span><span class="tag">${LV[lv]}</span><span class="tag">顯示 ${(ms/1000).toFixed(2).replace(/0$/,'')} 秒</span><span class="tag sim">模擬教學圖</span></div>
+ <div class="cvwrap"><canvas id="cv"></canvas><div class="cover" id="cover" hidden>👀 已隱藏<span class="small">憑第一眼印象作答</span></div></div><div class="tbar" id="tb"></div>
+ <p class="small">鍵盤：1–7 作答，Enter 下一題</p>
+ <div class="nameopts">${PK.map((x,i)=>`<button class="nopt" data-k="${x}">${i+1}. ${PATTERNS[x].name}</button>`).join('')}</div><div id="fb"></div></div>`);
+ drawChart($('cv'),sc,{});CUR.t0=now();const tb=$('tb');void tb.offsetWidth;tb.style.transition=`width ${ms}ms linear`;tb.style.width='0%';
+ CUR.timer=setTimeout(()=>{if(!CUR.done)$('cover').hidden=false},ms);
+ document.querySelectorAll('.nopt').forEach(b=>b.onclick=()=>answerFlash(b.dataset.k));
+ KEYH=e=>{const n=+e.key;if(!CUR.done&&n>=1&&n<=7)answerFlash(PK[n-1]);else if(CUR.done&&(e.key==='Enter'||e.key===' ')){e.preventDefault();SES.n++;nextFlash()}}}
+function answerFlash(ch){if(CUR.done)return;CUR.done=true;clearTimeout(CUR.timer);const{sc,k}=CUR,rt=(now()-CUR.t0)/1000,ok=ch===k,ms=S.settings.flashMs;
+ $('cover').hidden=true;const tb=$('tb');tb.style.transition='none';
+ recConf(k,ch);S.flash.push({t:now(),k,ok,rt:+rt.toFixed(2)});if(S.flash.length>400)S.flash.splice(0,S.flash.length-400);
+ review('F:'+k,!ok?1:rt>6?3:rt<2.5?5:4);elo(k,CUR.lv,ok?1:0,12);
+ if(S.settings.flashAuto)S.settings.flashMs=ok?(rt<ms/1000+2?Math.max(1500,ms-250):ms):Math.min(6000,ms+500);
+ SES.res.push(ok?1:0);SES.rts.push(rt);if(!ok)SES.miss.push([k,ch]);afterAnswer(k,!ok);tick();save();
+ drawChart($('cv'),sc,{lines:true});
+ document.querySelectorAll('.nopt').forEach(b=>{b.disabled=true;if(b.dataset.k===k)b.classList.add('right');else if(b.dataset.k===ch)b.classList.add('wrong')});
+ $('fb').innerHTML=`<p class="${ok?'ok':'bad'}">${ok?'✔ 正確':'✘ 錯咗'}：${PATTERNS[k].name}（${rt.toFixed(1)} 秒）</p><p class="mn">💡 ${PATTERNS[k].mn}</p>${ok?'':diffBox(k,ch)}<button id="nx">下一題 ⏎</button>`;
+ on('nx',()=>{SES.n++;nextFlash()})}
+function flashSummary(){const n=SES.res.length,ok=SES.res.reduce((a,b)=>a+b,0),art=SES.rts.reduce((a,b)=>a+b,0)/n;
+ view(`<div class="card"><h1>⚡ 快閃完成：${ok}/${n}</h1><p>平均反應時間 ${art.toFixed(1)} 秒　｜　下次顯示時間 ${(S.settings.flashMs/1000).toFixed(2)} 秒${S.settings.flashAuto?'（自動調節）':''}</p>
+ ${SES.miss.length?`<h3>認錯咗</h3>${SES.miss.map(([a,b])=>`<p>「${PATTERNS[a].name}」→ 你揀「${PATTERNS[b].name}」</p>`).join('')}<button id="dc">⚖️ 針對呢啲做對比辨別</button>`:'<div class="okbox">全對！顯示時間會自動縮短，挑戰更快直覺。</div>'}
+ <br><button id="again">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`);
+ on('dc',()=>startDiscrim(SES.miss[0]));on('again',startFlash);on('h',home)}
+
+/* ================= 對比辨別 ================= */
+function startDiscrim(pair){SES={mode:'discrim',n:0,total:6,res:[],fixed:pair||null,lastPair:null,miss:[]};nextDiscrim()}
+function pickPair(){if(SES.fixed&&SES.n%2===0)return SES.fixed;let best=PAIRS[0],bs=-1e9;
+ for(const p of PAIRS){const[a,b]=p;let w=Math.random()*2+(((S.conf[a]||{})[b]||0)+((S.conf[b]||{})[a]||0))*2+(200-mastery(a)-mastery(b))/50;if(SES.lastPair&&SES.lastPair.join()===p.join())w-=100;if(w>bs){bs=w;best=p}}return best}
+function nextDiscrim(){if(SES.n>=SES.total)return discrimSummary();const pair=pickPair();SES.lastPair=pair;
+ const tgt=pair[Math.random()<.5?0:1],oth=pair[0]===tgt?pair[1]:pair[0],lv=(mastery(pair[0])+mastery(pair[1]))/2>=55?2:1,left=Math.random()<.5?tgt:oth,right=left===tgt?oth:tgt;
+ CUR={tgt,oth,lv,left,right,scL:genScenario(left,lv,rs()),scR:genScenario(right,lv,rs()),done:false};
+ view(`<div class="card">${back}<div class="tags"><span class="tag">⚖️ 對比 ${SES.n+1}/${SES.total}</span><span class="tag">${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
+ <h2>邊幅係「${PATTERNS[tgt].name}」？</h2><p class="small">先睇兩條線嘅方向同有冇旗桿，再決定。鍵盤：A／B</p>
+ <div class="pair"><div><div class="plabel" id="lA">圖 A</div><canvas id="cvA"></canvas><button id="bA">揀 A</button></div><div><div class="plabel" id="lB">圖 B</div><canvas id="cvB"></canvas><button id="bB">揀 B</button></div></div><div id="fb"></div></div>`);
+ drawChart($('cvA'),CUR.scL,{});drawChart($('cvB'),CUR.scR,{});on('bA',()=>answerDiscrim('A'));on('bB',()=>answerDiscrim('B'));
+ KEYH=e=>{const x=e.key.toLowerCase();if(!CUR.done&&(x==='a'||x==='1'))answerDiscrim('A');else if(!CUR.done&&(x==='b'||x==='2'))answerDiscrim('B');else if(CUR.done&&e.key==='Enter'){SES.n++;nextDiscrim()}}}
+function answerDiscrim(side){if(CUR.done)return;CUR.done=true;const{tgt,oth,lv}=CUR,pick=side==='A'?CUR.left:CUR.right,ok=pick===tgt;
+ if(!ok){recConf(tgt,oth);SES.miss.push([tgt,oth])}elo(tgt,lv,ok?1:0,12);SES.res.push(ok?1:0);tick();save();
+ drawChart($('cvA'),CUR.scL,{lines:true});drawChart($('cvB'),CUR.scR,{lines:true});$('bA').disabled=$('bB').disabled=true;
+ $('lA').innerHTML=`圖 A：${PATTERNS[CUR.left].name}${CUR.left===tgt?' ✅':''}`;$('lB').innerHTML=`圖 B：${PATTERNS[CUR.right].name}${CUR.right===tgt?' ✅':''}`;
+ $('fb').innerHTML=`<p class="${ok?'ok':'bad'}">${ok?'✔ 正確':'✘ 錯咗'}</p>${diffBox(tgt,oth)}<p class="small">💡 ${PATTERNS[tgt].name}：${PATTERNS[tgt].mn}<br>💡 ${PATTERNS[oth].name}：${PATTERNS[oth].mn}</p><button id="nx">下一題 ⏎</button>`;
+ on('nx',()=>{SES.n++;nextDiscrim()})}
+function discrimSummary(){const ok=SES.res.reduce((a,b)=>a+b,0);
+ view(`<div class="card"><h1>⚖️ 對比完成：${ok}/${SES.res.length}</h1>${SES.miss.length?SES.miss.map(([a,b])=>diffBox(a,b)).join(''):'<div class="okbox">全對！分辨力好好。</div>'}
+ <button id="again">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`);on('again',()=>startDiscrim());on('h',home)}
+
+/* ================= 畫線練習 ================= */
+function startDraw(){SES=newSes('draw',5,{scores:[]});nextDraw()}
+function nextDraw(){if(SES.n>=SES.total)return drawSummary();const p=pickSmart(SES,'D:'),k=p.k,lv=Math.min(2,chooseLevel(k)),sc=genScenario(k,lv,rs());
+ CUR={sc,k,lv,pts:[],hover:null,done:false,T:null};
+ view(`<div class="card">${back}<div class="tags"><span class="tag">✏️ 畫線 ${SES.n+1}/${SES.total}</span><span class="tag">${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
+ <p><b>前段趨勢</b>：${sc.preDesc}</p><p class="drawhelp" id="dh"></p>
+ <div class="cvwrap"><canvas id="cv" style="touch-action:none;cursor:crosshair"></canvas></div>
+ <button class="alt sm" id="undo">↶ 復原一點</button><button class="alt sm" id="clr">✖ 重畫</button><div id="fb"></div></div>`);
+ const cv=$('cv');redrawDraw();
+ cv.onpointerdown=e=>{if(CUR.done)return;e.preventDefault();CUR.pts.push(toData(cv,CUR.T,e));CUR.hover=null;if(CUR.pts.length===4)finishDraw();else redrawDraw()};
+ cv.onpointermove=e=>{if(CUR.done||CUR.pts.length%2===0||e.pointerType==='touch'&&!e.buttons)return;CUR.hover=toData(cv,CUR.T,e);redrawDraw()};
+ on('undo',()=>{if(!CUR.done){CUR.pts.pop();CUR.hover=null;redrawDraw()}});on('clr',()=>{if(!CUR.done){CUR.pts=[];CUR.hover=null;redrawDraw()}})}
+function redrawDraw(){const P=CUR.pts,user=[];if(P.length>=2)user.push([P[0],P[1]]);
+ CUR.T=drawChart($('cv'),CUR.sc,{user,pts:P.length%2?[P[P.length-1]]:[],preview:P.length%2&&CUR.hover?[P[P.length-1],CUR.hover]:null});
+ $('dh').textContent=['① 喺圖上點兩下，畫「阻力線（上軌）」：連接形態期間嘅高位','② 再點一下，完成阻力線','③ 點兩下畫「支持線（下軌）」：連接形態期間嘅低位','④ 再點一下，完成支持線'][Math.min(P.length,3)]}
+function finishDraw(){const{sc}=CUR,p0=sc.preN,M=sc.M;let[a,b,c,d]=CUR.pts;const fn=(a,b)=>i=>a.p+(b.p-a.p)*(i-a.i)/((b.i-a.i)||1e-6);
+ let f1=fn(a,b),f2=fn(c,d);const avg=f=>{let s=0;for(let j=0;j<M;j++)s+=f(p0+j);return s/M};if(avg(f1)<avg(f2)){[f1,f2]=[f2,f1];CUR.pts=[c,d,a,b]}
+ let hi=-1e9,lo=1e9;for(let j=0;j<M;j++){hi=Math.max(hi,sc.U(j));lo=Math.min(lo,sc.L(j))}const Hh=hi-lo;
+ const err=(f,g)=>{let s=0;for(let j=0;j<M;j++)s+=Math.abs(f(p0+j)-g(j));return s/M/Hh},slc=(v0,v1)=>{const s=(v1-v0)/Hh;return Math.abs(s)<.12?'水平':s>0?'上傾':'下傾'};
+ const r=[[f1,sc.U,'阻力線（上軌）'],[f2,sc.L,'支持線（下軌）']].map(([f,g,n])=>({n,score:cl(Math.round(100*(1-err(f,g)/.3)),0,100),us:slc(f(p0),f(p0+M-1)),ts:slc(g(0),g(M-1))}));
+ const avgS=Math.round((r[0].score+r[1].score)/2);CUR.done=true;CUR.r=r;CUR.avgS=avgS;SES.scores.push(avgS);
+ const P=CUR.pts;CUR.T=drawChart($('cv'),sc,{lines:true,user:[[P[0],P[1]],[P[2],P[3]]]});
+ $('dh').textContent='紫虛線＝你畫嘅線；橙／藍＝標準答案';
+ $('fb').innerHTML=`<table><tr><th>線</th><th>貼合度</th><th>你畫嘅斜率</th><th>正確斜率</th></tr>${r.map(x=>`<tr><td>${x.n}</td><td>${mbar(x.score)}</td><td class="${x.us===x.ts?'ok':'bad'}">${x.us}</td><td>${x.ts}</td></tr>`).join('')}</table>
+ <h3>根據你畫嘅線，呢個係咩形態？</h3><div class="nameopts">${PK.map((x,i)=>`<button class="nopt" data-k="${x}">${i+1}. ${PATTERNS[x].name}</button>`).join('')}</div><div id="fb2"></div>`;
+ document.querySelectorAll('.nopt').forEach(b=>b.onclick=()=>answerDraw(b.dataset.k));
+ KEYH=e=>{const n=+e.key;if(n>=1&&n<=7&&!CUR.named)answerDraw(PK[n-1]);else if(CUR.named&&e.key==='Enter'){SES.n++;nextDraw()}}}
+function answerDraw(ch){if(CUR.named)return;CUR.named=true;const{k,avgS,lv}=CUR,ok=ch===k;recConf(k,ch);
+ const q=!ok?1:avgS<50?2:avgS<75?3:avgS<90?4:5;review('D:'+k,q);elo(k,lv,.5*(ok?1:0)+.5*avgS/100,16);SES.res.push(ok?1:0);afterAnswer(k,q<3);tick();save();
+ document.querySelectorAll('.nopt').forEach(b=>{b.disabled=true;if(b.dataset.k===k)b.classList.add('right');else if(b.dataset.k===ch)b.classList.add('wrong')});
+ $('fb2').innerHTML=`<p class="${ok?'ok':'bad'}">${ok?'✔ 正確':'✘ 錯咗'}：${PATTERNS[k].name}</p><p class="mn">💡 ${PATTERNS[k].mn}</p>${ok?'':diffBox(k,ch)}
+ ${CUR.r.some(x=>x.us!==x.ts)?'<p class="small">提示：畫線時連接形態期間「最高嘅幾個高位」同「最低嘅幾個低位」，唔好畫入前段趨勢。</p>':''}<button id="nx">下一題 ⏎</button>`;
+ on('nx',()=>{SES.n++;nextDraw()})}
+function drawSummary(){const ok=SES.res.reduce((a,b)=>a+b,0),av=Math.round(SES.scores.reduce((a,b)=>a+b,0)/SES.scores.length);
+ view(`<div class="card"><h1>✏️ 畫線完成</h1><p>命名正確 ${ok}/${SES.res.length}　｜　平均貼合度 ${av}%</p><p class="small">${av>=80?'畫線好準，可以挑戰智能練習嘅中高級題。':'多練幾輪：先搵形態起點同終點，再連接最突出嘅高位／低位。'}</p>
+ <button id="again">再來一輪</button><button class="alt" id="h">返回主頁</button></div>`);on('again',startDraw);on('h',home)}
+
+/* ================= 錯題本 ================= */
+function mistakesHome(){const t=now(),L=S.mistakes.slice().sort((a,b)=>a.due-b.due);
+ view(`<div class="card">${back}<h2>📕 錯題本</h2><p class="small">每題保留原本嘅圖（同一隨機種子），隔一日再做。全對兼冇「估」先會移出。</p>
+ ${L.length?`<button id="all">重做到期／最早嘅 5 題</button><table><tr><th>形態</th><th>難度</th><th>錯咗</th><th>到期</th><th></th></tr>${L.map(m=>`<tr><td>${PATTERNS[m.key].name}${m.note?`<div class="small">✍️ ${esc(m.note)}</div>`:''}</td><td>${LV[m.lv]}</td><td class="small">${m.wrong.map(i=>ITEMS[i]).join('、')}</td><td>${fmtDue(m.due)}</td><td><button class="sm" data-id="${m.id}">重做</button></td></tr>`).join('')}</table>`:'<div class="okbox">錯題本係空嘅 👍</div>'}</div>`);
+ on('all',startMistakes);document.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>startMistakeOne(b.dataset.id))}
+
+/* ================= 統計與設定 ================= */
+function spark(arr,max){if(!arr.length)return'<p class="small">未有紀錄</p>';const w=300,h=60,bw=w/Math.max(arr.length,10);
+ return`<svg viewBox="0 0 ${w} ${h}" class="spark">${arr.map((v,i)=>{const r=v/max,bh=Math.max(2,r*(h-4));return`<rect x="${i*bw+1}" y="${h-bh}" width="${bw-2}" height="${bh}" rx="1" fill="${r>=.7?'var(--ok)':r>=.5?'var(--warn)':'var(--bad)'}"/>`}).join('')}</svg>`}
+function confTable(){if(!Object.keys(S.conf).length)return'<p class="small">未有數據（形態名稱題、快閃、畫線、對比都會記錄）。</p>';let mx=1;PK.forEach(a=>PK.forEach(b=>{if(a!==b)mx=Math.max(mx,(S.conf[a]||{})[b]||0)}));
+ return`<div class="scroll"><table class="cm"><tr><th>實際＼你揀</th>${PK.map(k=>`<th>${PATTERNS[k].s}</th>`).join('')}</tr>${PK.map(a=>`<tr><th>${PATTERNS[a].s}</th>${PK.map(b=>{const v=(S.conf[a]||{})[b]||0,st=!v?'':a===b?`background:rgba(76,175,80,${.15+.45*Math.min(1,v/20)})`:`background:rgba(229,57,53,${.2+.6*v/mx})`;return`<td style="${st}">${v||''}</td>`}).join('')}</tr>`).join('')}</table></div>`}
+const pct=x=>x&&x.n?Math.round(x.ok/x.n*100)+'%':'—';
+function statsView(){const H=S.hist.slice(-30),cs=S.calib.sure,cg=S.calib.guess,F=S.flash.slice(-50),fa=F.length?Math.round(F.filter(x=>x.ok).length/F.length*100):0,frt=F.length?(F.reduce((a,x)=>a+x.rt,0)/F.length).toFixed(1):'—';
+ const weakPI=[];for(const k in S.pi)for(const it in S.pi[k]){const x=S.pi[k][it];if(x.n>=2)weakPI.push({k,it,a:x.ok/x.n,n:x.n})}weakPI.sort((a,b)=>a.a-b.a);
+ const st=S.settings,opt=(v,list,suf)=>list.map(x=>`<option value="${x}" ${+v===x||v===x?'selected':''}>${x}${suf||''}</option>`).join('');
+ view(`<div class="card">${back}<h2>📊 統計</h2>
+ <h3>形態掌握度</h3><div class="scroll"><table><tr><th>形態</th><th>掌握度（Elo）</th><th>做題準確</th><th>下次複習</th></tr>${PK.map(k=>{const c=S.cards['P:'+k],ds=['P:','F:','D:','L:'].map(p=>S.cards[p+k]).filter(x=>x&&x.seen).map(x=>x.due);return`<tr><td>${PATTERNS[k].name}</td><td>${mbar(mastery(k))} <span class="small">(${rating(k)})</span></td><td>${c&&c.seen?Math.round(c.ok/c.seen*100)+'%（'+c.seen+'）':'—'}</td><td>${ds.length?fmtDue(Math.min(...ds)):'未開始'}</td></tr>`}).join('')}</table></div>
+ <h3>七項分析準確率</h3><table><tr>${ITEMS.map(x=>`<th>${x}</th>`).join('')}</tr><tr>${ITEMS.map((x,i)=>`<td>${pct(S.items[i])}</td>`).join('')}</tr></table>
+ ${weakPI.length?`<p class="small"><b>最弱組合</b>：${weakPI.slice(0,3).map(x=>`${PATTERNS[x.k].name}・${ITEMS[x.it]}（${Math.round(x.a*100)}%）`).join('、')}</p>`:''}
+ <h3>🎯 信心校準</h3><p>肯定作答準確率：<b>${pct(cs)}</b>（${cs.n} 項）　｜　🎲 估嘅準確率：<b>${pct(cg)}</b>（${cg.n} 項）</p>
+ <p class="small">${cs.n>=14?(cs.ok/cs.n<.8?'⚠️ 你「肯定」嘅答案準確率低過 80%，有啲過度自信：唔肯定時記得剔「估」，或者先用提示。':'👍 你嘅信心大致準確。'):'做多幾題先有足夠數據。'}</p>
+ <h3>⚖️ 混淆矩陣</h3>${confTable()}
+ <h3>📈 最近 ${H.length} 題得分</h3>${spark(H.map(h=>h.s),7)}
+ <h3>⚡ 快閃</h3><p>最近 ${F.length} 題準確率 ${F.length?fa+'%':'—'}，平均 ${frt} 秒；目前顯示時間 ${(st.flashMs/1000).toFixed(2)} 秒</p></div>
+ <div class="card set"><h2>⚙️ 設定</h2>
+ <label><input type="checkbox" id="s_pm" ${st.premortem?'checked':''}> 作答前要寫「事前驗屍」</label>
+ <label>每日目標：<select id="s_goal">${opt(st.goal,[5,10,15,20,30],' 題')}</select></label>
+ <label>智能練習每輪：<select id="s_rl">${opt(st.roundLen,[3,5,8,10],' 題')}</select></label>
+ <label><input type="checkbox" id="s_fa" ${st.flashAuto?'checked':''}> 快閃顯示時間自動調節</label>
+ <label>快閃顯示時間：<select id="s_fm">${[1500,2000,3000,4000,5000,6000].map(x=>`<option value="${x}" ${Math.abs(st.flashMs-x)<250?'selected':''}>${x/1000} 秒</option>`).join('')}</select></label>
+ <label>外觀：<select id="s_th"><option value="auto" ${st.theme==='auto'?'selected':''}>跟系統</option><option value="light" ${st.theme==='light'?'selected':''}>淺色</option><option value="dark" ${st.theme==='dark'?'selected':''}>深色</option></select></label>
+ <button id="sv">儲存設定</button><span id="svm" class="ok"></span>
+ <h3>資料</h3><p class="small">紀錄只存喺呢部機嘅瀏覽器。換機前可以匯出，喺新機匯入。</p>
+ <button class="alt" id="ex">⬇️ 匯出進度</button><label class="alt" style="display:inline-block;background:var(--alt);color:#fff;border-radius:8px;padding:10px 16px;cursor:pointer">⬆️ 匯入進度<input type="file" id="im" accept="application/json" hidden></label>
+ <button class="alt" id="rs" style="background:var(--bad)">清除所有紀錄</button><p id="imm" class="small"></p></div>`);
+ on('sv',()=>{st.premortem=$('s_pm').checked;st.goal=+$('s_goal').value;st.roundLen=+$('s_rl').value;st.flashAuto=$('s_fa').checked;st.flashMs=+$('s_fm').value;st.theme=$('s_th').value;save();applyTheme();$('svm').textContent=' ✔ 已儲存'});
+ on('ex',()=>{const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pattern-progress-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()});
+ $('im').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(!s||s.ver!==2||!s.cards)throw 0;LS.set(KEY,JSON.stringify(s));S=null;load();statsView();$('imm').textContent='✔ 匯入成功'}catch(err){$('imm').textContent='✘ 檔案格式唔啱'}};r.readAsText(f)};
+ on('rs',()=>{if(confirm('確定清除所有紀錄？（無法復原）')){LS.del(KEY);LS.del(OLD);S=fresh();save();home()}})}
+
+/* ================= 啟動 ================= */
 if(typeof document!=='undefined'&&document.getElementById('app'))home();
-if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS};
+if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS,diffTip,review,chooseLevel,expect,mastery,_setS:s=>{S=s}};
 </script></body></html>
