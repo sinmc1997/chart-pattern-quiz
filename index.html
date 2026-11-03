@@ -67,6 +67,11 @@ table.cm td,table.cm th{text-align:center;padding:4px;min-width:34px}
 .drawhelp{font-weight:bold;color:var(--user);margin:6px 0}
 details summary{cursor:pointer;font-weight:bold}
 .set label{display:block;margin:6px 0}
+.mco{display:block;width:100%;text-align:left;background:var(--card);color:var(--fg);border:1px solid var(--line);margin:6px 0;line-height:1.45}
+.mco:disabled{opacity:.6}.mco.right{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:bold;opacity:1}.mco.wrong{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);opacity:1}
+.qtext{font-size:16px;margin:8px 0 10px}.qtext ul{margin:6px 0;padding-left:22px}.qtext table{font-size:13px}
+.jlbox{background:var(--accent-weak);border-left:4px solid var(--accent);padding:8px 10px;margin:8px 0;border-radius:4px}
+.pts li{margin:6px 0}h3.sec{margin:18px 4px 0}
 </style></head><body><main id="app"></main>
 <script>
 /* ================= 形態資料 ================= */
@@ -228,7 +233,7 @@ const KEY='patternMC_v2',OLD='patternMC_v1',DAY=864e5,now=()=>Date.now();
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const dstr=t=>{const d=new Date(t);return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()},today=()=>dstr(now());
 let S=null;
-function fresh(){return{ver:2,cards:{},rating:{},items:{},pi:{},conf:{},calib:{sure:{n:0,ok:0},guess:{n:0,ok:0}},hist:[],flash:[],mistakes:[],learned:{},day:{d:'',n:0},streak:{n:0,last:''},
+function fresh(){return{ver:2,cards:{},rating:{},items:{},pi:{},conf:{},calib:{sure:{n:0,ok:0},guess:{n:0,ok:0}},hist:[],flash:[],mistakes:[],learned:{},jl:{},lstat:{},dstat:{},cq:[],vcpH:[],day:{d:'',n:0},streak:{n:0,last:''},
  settings:{premortem:true,goal:15,roundLen:5,flashMs:4000,flashAuto:true,theme:'auto'}}}
 function migrate(o,s){
  if(o.items)for(const k in o.items){const t=o.items[k].t||0;s.items[k]={n:t,ok:t-(o.items[k].w||0)}}
@@ -287,6 +292,16 @@ function recommend(){const t=now(),R=[],add=(id,ic,ti,d,go)=>{if(!R.some(r=>r.id
  if(tc&&tc.n>=2)add('disc','⚖️',`你曾 ${tc.n} 次將「${PATTERNS[tc.a].name}」認錯做「${PATTERNS[tc.b].name}」`,'做對比辨別，專練兩者分別。',()=>startDiscrim([tc.a,tc.b]));
  const dueP=PK.filter(k=>S.cards['P:'+k]&&S.cards['P:'+k].seen&&S.cards['P:'+k].due<=t);
  if(dueP.length)add('smart','🎯',`智能練習：${dueP.length} 個形態到期複習`,'按遺忘曲線安排，難度自動調節。',()=>startSmart());
+ const unread=JL.filter(l=>!S.jl[l.id]);
+ if(unread.length&&S.hist.length>=3)add('jl','📘',`J Law 第 ${unread[0].id} 課：${unread[0].t}`,'先睇重點，再主動回憶。',()=>jlDetail(unread[0].id));
+ const dueJ=JL.filter(l=>S.cards['J:'+l.id]&&S.cards['J:'+l.id].due<=t);
+ if(dueJ.length)add('jrec','🧠',`J Law 課堂回憶：${dueJ.length} 課到期`,'唔睇筆記講出重點，再自評。',()=>jlRecall(dueJ[0].id));
+ const dueQ=QB.filter(q=>{const c=S.cards['Q:'+q.id];return c&&c.seen&&c.due<=t}).length;
+ if(dueQ)add('concept','🧠',`概念快問：${dueQ} 題到期`,'J Law 重點按遺忘曲線重溫。',()=>startMC('concept'));
+ const dueS=Object.keys(DRILLS).filter(k=>S.cards['S:'+k]&&S.cards['S:'+k].due<=t).length;
+ if(dueS)add('drill','🧮',`情境計算：${dueS} 類到期`,'倉位、出貨日、止盈止蝕流程。',()=>startMC('drill'));
+ const vh=S.vcpH.slice(-10);
+ if(S.hist.length>=3&&(vh.length<5||vh.filter(Boolean).length/vh.length<.8))add('vcp','📈','VCP 辨識',vh.length?`最近準確率 ${Math.round(vh.filter(Boolean).length/vh.length*100)}%，目標 80%。`:'J Law 核心形態：分辨有效同無效 VCP。',()=>startVCP());
  const fl=S.flash.slice(-30),fa=fl.length?fl.filter(f=>f.ok).length/fl.length:0;
  if(fl.length<10||fa<.8)add('flash','⚡','快閃辨識：練第一眼直覺',fl.length?`最近準確率 ${Math.round(fa*100)}%，目標 80% 以上。`:'幾秒內認出形態，建立直覺。',()=>startFlash());
  add('smart','🎯','智能練習','自動揀最需要練嘅形態同難度。',()=>startSmart());
@@ -309,16 +324,21 @@ function home(){if(!S)load();SES=null;CUR=null;
  const learnedN=PK.filter(k=>S.learned[k]).length,f20=S.flash.slice(-20),facc=f20.length>=20?f20.filter(x=>x.ok).length/20:0,allM=PK.map(mastery),
   h3=S.hist.filter(h=>h.lv===3).slice(-10),h3avg=h3.length>=5?h3.reduce((a,h)=>a+h.s,0)/h3.length:0;
  const steps=[[learnedN===7,`學齊 7 個形態（學習模式 ${learnedN}/7）`],[facc>=.8,`快閃辨識最近 20 題 ≥80%（${f20.length>=20?Math.round(facc*100)+'%':f20.length+'/20 題'}）`],
-  [allM.every(m=>m>=50),`全部形態掌握度 ≥50%（最低 ${Math.min(...allM)}%）`],[h3avg>=5,`高級假突破題平均 ≥5/7（${h3.length>=5?h3avg.toFixed(1):h3.length+'/5 題'}）`],[allM.every(m=>m>=80),'全部形態掌握度 ≥80%：畢業 🎓']];
+  [allM.every(m=>m>=50),`全部形態掌握度 ≥50%（最低 ${Math.min(...allM)}%）`],[h3avg>=5,`高級假突破題平均 ≥5/7（${h3.length>=5?h3avg.toFixed(1):h3.length+'/5 題'}）`],[JL.every(l=>S.jl[l.id]),`讀完 J Law ${JL.length} 課重點（${JL.filter(l=>S.jl[l.id]).length}/${JL.length}）`],
+  [S.cq.length>=30&&S.cq.slice(-30).filter(Boolean).length>=24,`概念快問最近 30 題 ≥80%（${S.cq.length>=30?Math.round(S.cq.slice(-30).filter(Boolean).length/30*100)+'%':S.cq.length+'/30 題'}）`],
+  [S.vcpH.length>=10&&S.vcpH.slice(-10).filter(Boolean).length>=8,`VCP 辨識最近 10 題 ≥80%（${S.vcpH.length>=10?S.vcpH.slice(-10).filter(Boolean).length*10+'%':S.vcpH.length+'/10 題'}）`],
+  [allM.every(m=>m>=80),'全部形態掌握度 ≥80%：畢業 🎓']];
+ const JMODES=[['jl','📘','J Law 課程',`13 課重點＋主動回憶（已讀 ${JL.filter(l=>S.jl[l.id]).length}/${JL.length}）`],['concept','🧠','概念快問',`${QB.length} 題，間隔重複`],['drill','🧮','情境計算','1% 倉位、出貨日、止盈止蝕流程、M.E.T.A. 決策'],['vcp','📈','VCP 辨識','有效定無效？數收縮、定 Pivot 同止蝕']];
  const MODES=[['smart','🎯','智能練習',`間隔重複＋自適應難度＋交錯練習，每輪 ${S.settings.roundLen} 題`],['learn','📚','學習模式','示範例題、口訣、示意圖，之後主動回憶'],
   ['flash','⚡','快閃辨識','圖只顯示幾秒，練第一眼直覺'],['discrim','⚖️','對比辨別','兩幅相似形態，揀出指定嗰幅'],['draw','✏️','畫線練習','自己畫阻力／支持線，再對答案'],
   ['mist','📕',`錯題本（${S.mistakes.length}${mDue?'，'+mDue+' 到期':''}）`,'同一幅圖隔日重做，直到做啱'],['stats','📊','統計與設定','掌握度、混淆矩陣、信心校準、匯出']];
- view(`<div class="card"><h1>📈 形態訓練營</h1><div class="small">三角形・旗形・楔形｜全部為模擬教學圖，只作學習，非投資建議。</div>
+ view(`<div class="card"><h1>📈 形態訓練營</h1><div class="small">三角形・旗形・楔形・VCP＋J Law 交易系統｜全部為模擬教學圖，只作學習，非投資建議。</div>
  <div class="stats4"><div><b>${dn}/${g}</b><span>今日題數</span></div><div><b>${streakNow()} 🔥</b><span>連續日數</span></div><div><b>${dueCount()}</b><span>到期複習</span></div><div><b>${avgMastery()}%</b><span>平均掌握</span></div></div>
  <div class="bar"><i style="width:${Math.min(100,dn/g*100)}%"></i></div></div>
  <div class="card"><h3 style="margin-top:0">🤖 智能建議</h3>${R.slice(0,3).map((r,i)=>`<button class="rec ${i?'':'main'}" id="r${i}">${r.ic} ${r.t}<span>${r.d}</span></button>`).join('')}</div>
- <div class="grid">${MODES.map(m=>`<div class="mode" data-go="${m[0]}"><b>${m[1]} ${m[2]}</b><p>${m[3]}</p></div>`).join('')}
+ <h3 class="sec">📐 形態練習</h3><div class="grid">${MODES.map(m=>`<div class="mode" data-go="${m[0]}"><b>${m[1]} ${m[2]}</b><p>${m[3]}</p></div>`).join('')}
  <div class="mode"><b>🧩 經典模式</b><p>自選難度，每輪 3 題，三類交錯</p><button class="sm" data-l="1">初級</button><button class="sm" data-l="2">中級</button><button class="sm" data-l="3">高級</button></div></div>
+ <h3 class="sec">📘 J Law 交易系統</h3><div class="grid">${JMODES.map(m=>`<div class="mode" data-go="${m[0]}"><b>${m[1]} ${m[2]}</b><p>${m[3]}</p></div>`).join('')}</div>
  <div class="card"><h3 style="margin-top:0">🗺️ 學習路徑</h3><ol class="path">${steps.map(([d,t])=>`<li class="${d?'done':''}">${d?'✅':'⬜'} ${t}</li>`).join('')}</ol></div>
  <div class="card"><details><summary>🔬 呢個訓練營用咗咩學習法？</summary><ul class="small" style="font-size:13px">
  <li><b>間隔重複（SM-2）</b>：答錯 10 分鐘後／同一輪隔 2 題再出；答啱就 1 → 3 → 7… 日咁拉長間隔，喺就快忘記前複習。</li>
@@ -330,9 +350,10 @@ function home(){if(!S)load();SES=null;CUR=null;
  <li><b>自我解釋</b>：答錯後用自己說話寫低原因，存入錯題本，重做時會顯示。</li>
  <li><b>漸退鷹架</b>：掌握度低時自動幫你畫好趨勢線（示範→半引導→獨立），之後逐步移除。</li>
  <li><b>適度難度</b>：用 Elo 評分揀難度，令預期正確率維持約 70%——唔會太易亦唔會太挫敗。</li>
- <li><b>事前驗屍</b>：作答前先寫低可能錯喺邊，減少事後孔明。</li></ul></details></div>`);
+ <li><b>事前驗屍</b>：作答前先寫低可能錯喺邊，減少事後孔明。</li>
+ <li><b>J Law 系統</b>：課程重點用主動回憶＋間隔重複；情境題每次隨機生成新數字，練嘅係方法唔係背答案。</li></ul></details></div>`);
  R.slice(0,3).forEach((r,i)=>on('r'+i,r.go));
- const GO={smart:startSmart,learn:learnHome,flash:startFlash,discrim:()=>startDiscrim(),draw:startDraw,mist:mistakesHome,stats:statsView};
+ const GO={smart:startSmart,learn:learnHome,flash:startFlash,discrim:()=>startDiscrim(),draw:startDraw,mist:mistakesHome,stats:statsView,jl:jlHome,concept:()=>startMC('concept'),drill:()=>startMC('drill'),vcp:startVCP};
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>GO[b.dataset.go]());
  document.querySelectorAll('[data-l]').forEach(b=>b.onclick=e=>{e.stopPropagation();startClassic(+b.dataset.l)})}
 
@@ -350,6 +371,7 @@ function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const 
  <div class="cvwrap"><canvas id="cv"></canvas></div>
  <table><tr><th>入場</th><td>收市價有效突破${P.bias===0?'（上或下，等方向確認）':P.bias>0?'上軌':'下軌'}，並伴隨成交量明顯放大；突破K縮量＝未確認。</td></tr>
  <tr><th>止蝕</th><td>形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。</td></tr><tr><th>目標</th><td>${methOf(P)}。</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
+ <div class="jlbox"><b>📘 J Law 重點</b>：${JLP[k]}</div>
  <h3>⚖️ 易混淆形態</h3>${SIMILAR[k].map(b=>diffBox(k,b)).join('')}
  <h3>下一步</h3><button id="ex1" class="alt">🔄 換個例子</button><button id="ex2" class="alt">中級例子</button><button id="ex3" class="alt">高級（假突破）例子</button><br>
  <button id="rc">🧠 主動回憶呢個形態</button><button id="fq">🎯 即刻做一題</button></div>`);
@@ -425,7 +447,7 @@ function gradeQuiz(ans,gs,why){const{sc,qs}=CUR,k=sc.key,P=sc.P;let tot=0,eff=0;
  ${lucky.length?`<p class="small">🎲 估中 ${lucky.length} 項（${lucky.map(r=>ITEMS[r.q.it]).join('、')}）：唔當識，會提早再考。</p>`:''}
  ${!rows[0].ok&&chosenKey?diffBox(k,chosenKey):''}
  ${why!=null?`<div class="warn"><b>你事前寫嘅風險</b>：${esc(why)}<br>對照本形態常見失敗：${sc.hard?HARD_FAIL:P.fail}</div>`:''}
- ${bad?`<p><b>最關鍵錯誤</b>：${ITEMS[bad.q.it]}。${bad.q.ex}<br><span class="small">${DRILL[bad.q.it]}</span></p>`:'<div class="okbox">全部答啱！</div>'}
+ ${bad?`<p><b>最關鍵錯誤</b>：${ITEMS[bad.q.it]}。${bad.q.ex}<br><span class="small">${DRILL[bad.q.it]}</span><br><span class="small">📘 ${ITEM_JL[bad.q.it]}</span></p>`:'<div class="okbox">全部答啱！</div>'}
  ${mref&&mref.cleared?'<div class="okbox">📕 呢題錯題已經做啱，移出錯題本 🎉</div>':''}
  <div class="srs">📅 下次複習「${P.name}」：${fmtDue(c.due)}　｜　掌握度 ${m0}% → <b>${m1}%</b>${m1>m0?' ⬆️':m1<m0?' ⬇️':''}</div>
  ${wrongIt.length?`<h3>✍️ 自我解釋（選填，會存入錯題本）</h3><textarea id="se" placeholder="用自己嘅說話寫：點解正解係啱？下次見到點認？">${mref&&mref.note?esc(mref.note):''}</textarea>`:''}
@@ -513,7 +535,7 @@ function finishDraw(){const{sc}=CUR,p0=sc.preN,M=sc.M;let[a,b,c,d]=CUR.pts;const
  const avgS=Math.round((r[0].score+r[1].score)/2);CUR.done=true;CUR.r=r;CUR.avgS=avgS;SES.scores.push(avgS);
  const P=CUR.pts;CUR.T=drawChart($('cv'),sc,{lines:true,user:[[P[0],P[1]],[P[2],P[3]]]});
  $('dh').textContent='紫虛線＝你畫嘅線；橙／藍＝標準答案';
- $('fb').innerHTML=`<table><tr><th>線</th><th>貼合度</th><th>你畫嘅斜率</th><th>正確斜率</th></tr>${r.map(x=>`<tr><td>${x.n}</td><td>${mbar(x.score)}</td><td class="${x.us===x.ts?'ok':'bad'}">${x.us}</td><td>${x.ts}</td></tr>`).join('')}</table>
+ $('fb').innerHTML=`<table><tr><th>線</th><th>J Law 叫法</th><th>貼合度</th><th>你畫嘅斜率</th><th>正確斜率</th></tr>${r.map((x,li)=>`<tr><td>${x.n}</td><td>${LN[CUR.k][li]}</td><td>${mbar(x.score)}</td><td class="${x.us===x.ts?'ok':'bad'}">${x.us}</td><td>${x.ts}</td></tr>`).join('')}</table>
  <h3>根據你畫嘅線，呢個係咩形態？</h3><div class="nameopts">${PK.map((x,i)=>`<button class="nopt" data-k="${x}">${i+1}. ${PATTERNS[x].name}</button>`).join('')}</div><div id="fb2"></div>`;
  document.querySelectorAll('.nopt').forEach(b=>b.onclick=()=>answerDraw(b.dataset.k));
  KEYH=e=>{const n=+e.key;if(n>=1&&n<=7&&!CUR.named)answerDraw(PK[n-1]);else if(CUR.named&&e.key==='Enter'){SES.n++;nextDraw()}}}
@@ -550,6 +572,8 @@ function statsView(){const H=S.hist.slice(-30),cs=S.calib.sure,cg=S.calib.guess,
  <p class="small">${cs.n>=14?(cs.ok/cs.n<.8?'⚠️ 你「肯定」嘅答案準確率低過 80%，有啲過度自信：唔肯定時記得剔「估」，或者先用提示。':'👍 你嘅信心大致準確。'):'做多幾題先有足夠數據。'}</p>
  <h3>⚖️ 混淆矩陣</h3>${confTable()}
  <h3>📈 最近 ${H.length} 題得分</h3>${spark(H.map(h=>h.s),7)}
+ <h3>📘 J Law 課程</h3><div class="scroll"><table><tr><th>課</th><th>已讀</th><th>題目準確率</th><th>課堂回憶</th></tr>${JL.map(l=>`<tr><td>${l.id}. ${l.t}</td><td>${S.jl[l.id]?'✅':''}</td><td>${pct(S.lstat[l.id])}</td><td>${S.cards['J:'+l.id]?fmtDue(S.cards['J:'+l.id].due):'—'}</td></tr>`).join('')}</table></div>
+ <p class="small"><b>情境計算</b>：${Object.keys(DRILLS).map(k=>`${DRILLS[k].name} ${pct(S.dstat[k])}`).join('、')}<br><b>VCP 辨識</b>：最近 ${S.vcpH.slice(-20).length} 題判斷準確 ${S.vcpH.length?Math.round(S.vcpH.slice(-20).filter(Boolean).length/S.vcpH.slice(-20).length*100)+'%':'—'}</p>
  <h3>⚡ 快閃</h3><p>最近 ${F.length} 題準確率 ${F.length?fa+'%':'—'}，平均 ${frt} 秒；目前顯示時間 ${(st.flashMs/1000).toFixed(2)} 秒</p></div>
  <div class="card set"><h2>⚙️ 設定</h2>
  <label><input type="checkbox" id="s_pm" ${st.premortem?'checked':''}> 作答前要寫「事前驗屍」</label>
@@ -567,7 +591,405 @@ function statsView(){const H=S.hist.slice(-30),cs=S.calib.sure,cg=S.calib.guess,
  $('im').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(!s||s.ver!==2||!s.cards)throw 0;LS.set(KEY,JSON.stringify(s));S=null;load();statsView();$('imm').textContent='✔ 匯入成功'}catch(err){$('imm').textContent='✘ 檔案格式唔啱'}};r.readAsText(f)};
  on('rs',()=>{if(confirm('確定清除所有紀錄？（無法復原）')){LS.del(KEY);LS.del(OLD);S=fresh();save();home()}})}
 
+</script>
+<script>
+/* ================= J Law 交易系統：課程資料 ================= */
+const JL=[
+{id:1,t:'VCP 波動收縮形態',src:'VCP 3 個交易技巧',mn:'冇形態係 100%，最緊要係嚴格控制虧損。',rel:[],pts:[
+ 'VCP＝Volatility Contraction Pattern（Mark Minervini 提出）：股價波幅一次比一次細，代表供應逐步被消化。',
+ '技巧一：必須喺上升趨勢——股價 > 50MA > 200MA，兩條均線都向上。',
+ '技巧二：收縮逐次收窄，第一次理想 20–35%；第一次去到 50–60% 就要 6 個月至 1 年築底。',
+ '技巧三：最後一次收縮 < 10%，下跌日成交量極少（Tight Area）。',
+ '買點：放量突破 Tight Area（Pivot）嘅當下；止蝕放最後收縮低位下方。',
+ '有效 VCP 至少 2 次收縮，常見 3–4 次。',
+ '現實：勝率約 45–50%，但平均蝕 4–5%、平均賺 12–14%——靠賺多蝕少，唔係靠高勝率。']},
+{id:2,t:'趨勢線 UTL／TRL／DTL／TSL',src:'終極交易課程 EP2',mn:'趨勢線係 Zone 唔係死線；對錯只睇止蝕有冇觸發。',rel:['asc','desc','sym'],pts:[
+ '斜向支持阻力＝趨勢線；兩個 swing low／high 已足夠（兩點式），更快捉到轉折。',
+ '四種：UTL 上升支持、TRL 上升阻力、DTL 下降阻力、TSL 下降支持。',
+ '短暫穿越（overshoot／shakeout）好常見，判斷對錯只睇止蝕有冇被觸發。',
+ '線越斜，支持阻力越弱；被測試越多次亦越弱。',
+ '假突破三問：穿越時有冇放量？有冇觸發止蝕？0–3 根 K 內有冇收返？',
+ 'Danger Point（觸線即入，盈虧比最好但逆勢）vs 確認後入場（有保護、成功率高但價較高）。',
+ '時間維度：月 > 週 > 日 > 小時，高維度支持阻力凌駕低維度。',
+ '離場：Sell into Strength（喺 TRL 限價賣）或 Sell into Weakness（跌穿 Backstop 先走）；趨勢線要按最新 swing 點微調。']},
+{id:3,t:'平行通道（2加1 畫法）',src:'終極交易課程 EP3',mn:'兩點畫線，平行複製到第三點；第一、二個預測點最準。',rel:['bullflag','bearflag'],pts:[
+ '上升通道＝UTL＋平行 TRL；下降通道＝DTL＋平行 TSL。',
+ '「2加1」畫法：兩點畫一條線，再平行複製到第三點——比三點式更早更準。',
+ '2加1 之後第一、二個預測點最準，之後逐步減弱。',
+ '先確認真係一浪高過一浪（或低過一浪），浪頂浪底同步，先好畫——唔好為畫而畫。',
+ '合理性：通道頂／底應同既有橫向支持阻力重疊；唔重疊就換 swing 點重畫。',
+ '明確下跌趨勢中嘅向上突破，先懷疑係誘多陷阱（夾淡倉）。',
+ '四巫日（3／6／9／12 月第三個星期五）成交量唔具參考價值。',
+ '睇唔明沽空：將圖反轉，當做多咁分析。']},
+{id:4,t:'移動平均線',src:'終極交易課程 EP4',mn:'均線唔可以單獨作入場理由，最少再加 1–2 個。',rel:[],pts:[
+ '均線＝會郁嘅趨勢線，一樣係區間，突破後會角色互換。',
+ '常用 10／20／50／200MA；輔助 63／150／250MA。SMA 同 EMA 一齊開，形成區間。',
+ '冇「絕對重要」嘅均線：弱股跌到 200MA 唔係買點；強股可能只回 10／20MA。',
+ '均線斜度＝趨勢力量；長線向上但 10／20MA 向下＝大方向冇變、短期回調。',
+ '錯過突破唔使 FOMO：通常有 Second Chance 拉回。',
+ '大升後橫行，未穿 200MA 而且整理 20–30% 內，可能只係消化升幅。',
+ '冠軍錦囊：用利潤付風險；唔順手就減注；策略要配合市況。']},
+{id:5,t:'M.E.T.A. 基礎：動能趨勢＋支持阻力',src:'終極交易課程 EP1',mn:'單一理由入場＝亂來；多重優勢疊加先係可靠交易。',rel:['bullflag','bearflag'],pts:[
+ '散戶輸錢主因：入場只得單一理由，唔知自己有冇優勢。',
+ '專業交易者勝率只得 40–55%，靠報酬風險比（例如 3:1）賺錢。',
+ 'M.E.T.A.＝多重優勢交易區：唔同策略嘅人喺同一位置一齊防守，合力更大。',
+ '動能與趨勢：強勁趨勢大升細回、順勢放量、K 身少重疊、少碰 20MA（唔碰 10MA 最強）。',
+ '支持與阻力：係區間、有記憶、會互換（Flipping）、測試越多越弱；止蝕放區間外。',
+ '突破後回測（Back test）係正常；穿越後快速收返多數係陷阱（Shakeout）。',
+ '高時間維度支持阻力凌駕低時間維度。',
+ '追求時間效率：3 日賺 20% 好過 3 個月賺 20%。']},
+{id:6,t:'拉回買入法 Pullback Buy',src:'Pullback Buy 完整教學',mn:'錯過突破唔追高，等重新突破小型下降趨勢線。',rel:['bullflag'],pts:[
+ '錯過第一個突破點，等股價調整後重新突破「小型下降趨勢線」，係第二次低風險機會。',
+ '只用喺第二階段上升（右側），最好早中期。',
+ '等 Pullback Recovery（重新確認突破），唔好喺跌緊途中接。',
+ '拉回時間越短越強（大資金急住補貨）。',
+ '可用 4 小時／2 小時圖做放大鏡確認突破，突破前最好有小整固。',
+ '止蝕放回調前低點下方，控制 8–10% 內，理想 5–6%。',
+ '距突破點已超過 2–3%，冇特別理由唔追；VCP 突破後約一半機會會回調。']},
+{id:7,t:'股市見底 8 大信號',src:'熊市 8 大入市信號',mn:'最好嘅入場唔係最低位，而係風險最低、最易賺錢嘅位置。',rel:[],pts:[
+ '贏家只喺右側（升勢確認）入場；抄底係輸家行為。',
+ '① 極端超賣（跳水式下跌）② 大力反彈 ③ 回測前低。',
+ '④ 突破底部形態，一浪高過一浪。',
+ '⑤ 10 週線（≈50 天線）升穿 40 週線（≈200 天線）⑥ 40 週線本身轉平或向上。',
+ '⑦ 50／200 天線以上成分股比例大升（理想 70–90%）⑧ 大量個股出現低風險 Setup。',
+ '單一訊號可能係假：2015 年 12 月嘅假交叉，只有約 26% 股票喺 50 天線上。']},
+{id:8,t:'熊市保命＋多重確認預判',src:'避開股災預判方法',mn:'多個獨立方法指向同一位置，把握越大。',rel:[],pts:[
+ 'Confluence：量度升幅、週線 TRL、日線通道頂、時間週期、跨指數、歷史牛市長度，互相印證。',
+ '市場會 Front Run 經濟數據，唔會等數據出咗先反應。',
+ '牛市尾段降低進取，唔好喺情緒最高時用最大倉位；虧損後提防報復性交易。',
+ '牛市熊市都有機會，但新手喺熊市可以 sit out 學習。',
+ '「豬喺牛市熊市都會被劏」——貪心唔知進退最危險。']},
+{id:9,t:'股市見頂 4 大訊號',src:'4 大見頂訊號',mn:'懂得走比懂得買重要。',rel:[],pts:[
+ '① 出貨日：下跌（或升幅大幅收窄）日，成交量高過前一日同 50 天平均；2–4 週內 ≥4 個＝戒備。',
+ '② 突兀走勢：單日波幅 ≥3% 大陰燭、跳空低開、全日單向跌。',
+ '③ 背馳：指數創新高，但 50／200 天線以上成分股比例下降。',
+ '④ 急漲性走勢（Climax Run）後，出現幾個月至一年最大單日跌幅＝最後逃生門。',
+ '期貨結算日（3／6／9／12 月第三個星期五）唔計出貨日。',
+ '唔用 RSI、MACD、OBV、保力加，只睇價格、成交量、趨勢。']},
+{id:10,t:'套牢股票處理心法',src:'套牢股票點處理',mn:'每個買賣決定自己負全責。',rel:[],pts:[
+ '唔好將決策責任外判畀「大師」、朋友或新聞。',
+ '止蝕後反彈、或死抱後小反彈，都唔代表決定啱——唔好用單一結果歸因。',
+ '任何 50% 跌幅都由 20% 開始，任何 90% 都由 50% 開始。',
+ '死抱重傷股＝消耗購買力（機會成本），錯過真正翻身嘅股票。',
+ '熊市最好持現金冬眠，等同大市背馳嘅領導股出現。']},
+{id:11,t:'暴跌後谷底翻身',src:'4 招保命＋3 招翻身',mn:'保留購買力，先有資格翻身。',rel:[],pts:[
+ '4 招保命：嚴守止蝕（單一股票最多 8%）→ 關掉消息 → 寫低失敗原因反覆回顧 → 冬眠。',
+ '虧損越大回本越難：蝕 20% 要升 25%，蝕 50% 要升 100%。',
+ '翻身①：找大市創新低時佢冇創新低、一浪高過一浪嘅「救命標的」。',
+ '翻身②：同板塊「兄弟姐妹」都一樣強，先確認係真趨勢。',
+ '翻身③：用 VCP／趨勢線抓準入場時機。',
+ '跌市中跟大市一齊跌嘅「穩陣收息股」唔係救命股。',
+ '「做多有時，做空有時，釣魚也有時。」']},
+{id:12,t:'你嘅量化策略手冊',src:'量化交易策略手冊 v1',mn:'買入靠形態確認，防守睇跌穿，止盈搵天量同乖離，冇客觀訊號就讓子彈飛。',rel:[],pts:[
+ '一句講晒：只買第二階段強勢股，喺 M.E.T.A. 交會處入場，每單蝕 1%，跌穿形態先走，止盈睇客觀訊號。',
+ '選股：距 52 週低 ≥+30%、距 52 週高 ≤25%、價 > 200MA、30 週線向上、回調越來越細、VCP 成立。',
+ '五大 M.E.T.A.：阻力變支持、UTL 支持、DTL 突破、10／20／30／50MA 支持、低量拉回；命中 3–4 項，再等翌日可觀成交量。',
+ '倉位股數＝(總資金 × 1%) ÷ (入場價 × 止蝕%)；止蝕越窄，倉位可以越大。',
+ '止蝕觸發先問：係咪所有 M.E.T.A. 優勢都失效？有冇放量？0–3 根 K 內收返？',
+ '止盈四訊號：Climax Top、高檔量價背離、偏離 200 日線 70–100%、放量跌穿 10／20 日線。',
+ '想賣但冇客觀訊號＝情緒：熄機，繼續持有。',
+ '交易日誌：記錄命中條件、R 倍數、出場原因，計勝率、期望值、最大回撤。']},
+{id:13,t:'Finviz 選股設定',src:'choose 股票 tool',mn:'先用條件篩走弱股，再逐隻睇圖搵 VCP／M.E.T.A.。',rel:[],pts:[
+ 'Descriptive：市值 +Small（> 3 億美元）、股價 > $20、當日成交量 > 50K。',
+ 'Fundamental：季度營收按年增長 > 5%、機構持股 > 10%。',
+ 'Technical：價高過 SMA50、SMA200 喺 SMA50 之下（截圖顯示「SMA200 be…」）、距 52 週高 0–10%。',
+ '用 Charts 檢視配合 TA 趨勢線快速掃圖，再逐隻檢查 VCP 同 M.E.T.A.。']}];
+const jlT=L=>JL.find(x=>x.id===L);
+
+/* 概念題庫：[id, 課, 問題, 正解, [錯誤選項], 解釋] */
+const QB=[
+['v1',1,'VCP 嘅意思係？','波動收縮形態：股價波幅一次比一次細',['成交量逐步放大嘅突破形態','價格兩次觸底嘅雙底','多條均線糾纏嘅整理形態'],'VCP 由 Mark Minervini 提出，反映供應逐步被消化。'],
+['v2',1,'有效 VCP 要處於上升趨勢，以下邊個係正確條件？','股價 > 50MA > 200MA，而且兩條均線都向上',['股價高過 200MA 就夠','50MA 啱啱跌穿 200MA','RSI 高過 50'],'三個條件要同時滿足；出現喺下跌趨勢嘅 VCP 好易失敗。'],
+['v3',1,'VCP 第一次收縮嘅理想幅度係？','20–35%',['50–60%','5% 以內','冇要求，越深越好'],'第一次太深（50–60%），底部要 6 個月至 1 年先穩，否則底部買家嘅獲利盤會壓住股價。'],
+['v4',1,'VCP 最後一次收縮應該點？','波幅 10% 以內，下跌日成交量好少（Tight Area）',['波幅越大越好','15–25% 之間','下跌要放量先算數'],'最後收縮細＋下跌縮量＝冇大手供應，一放量突破就容易急升。'],
+['v5',1,'VCP 嘅正確買入點係？','放量突破 Tight Area（Pivot）嘅當下',['第一次收縮嘅底部','突破後再升 10% 確認先買','最後收縮下跌途中低吸'],'J Law 技巧三。'],
+['v6',1,'J Law 用 VCP 嘅實際勝率大約係？','45–50%，但平均蝕 4–5%、平均賺 12–14%',['90% 以上','每單都賺 50% 以上','勝率高到唔使止蝕'],'靠「賺多蝕少」嘅正期望值，而唔係高勝率。'],
+['v7',1,'有效 VCP 一般至少有幾多次收縮？','至少 2 次，常見 3–4 次',['1 次就夠','一定要 6 次','冇所謂'],'收縮次數要夠，先見到供應逐步減少。'],
+['v8',1,'第一次收縮達 50–60%，J Law 點睇？','底部最好建立 6 個月至 1 年，等籌碼穩定',['即刻買，越深越抵','永遠唔可以做','用雙倍注碼'],'大跌後太快升返原位，底部買家浮盈翻倍，容易引發獲利盤。'],
+['t1',2,'J Law 畫趨勢線最少要幾多點？','兩個 swing low（或 swing high）就夠',['一定要三點','四點先準','唔使搵 swing 點，隨手畫'],'兩點式可以更早捉到轉折；三點式會遲。'],
+['t2',2,'上升趨勢中，連接兩個 swing high 嘅阻力線叫？','TRL（Trend Resistance Line）',['UTL','DTL','TSL'],'UTL＝上升支持、TRL＝上升阻力、DTL＝下降阻力、TSL＝下降支持。'],
+['t3',2,'下降趨勢中，連接兩個 swing low 嘅支持線叫？','TSL（Trend Support Line）',['DTL','UTL','TRL'],'TSL 屬逆勢買點，只建議有經驗嘅交易者用。'],
+['t4',2,'股價短暫穿越趨勢線，判斷交易對錯嘅唯一標準係？','止蝕有冇被觸發',['價格有冇碰到線','當日係紅定綠','新聞點講'],'趨勢線係 Zone 唔係死線，overshoot／shakeout 好常見。'],
+['t5',2,'趨勢線越傾斜，支持／阻力力量會？','越弱',['越強','冇分別','只同成交量有關'],'越斜嘅線左邊越少歷史支撐，跌穿後會搵下一條較平嘅線。'],
+['t6',2,'以下邊個「唔係」J Law 判斷假突破嘅三個問題？','RSI 有冇超買',['穿越時有冇放量','有冇觸發止蝕','0–3 根 K 內有冇收返'],'J Law 唔用 RSI 等二手指標，只睇價格、成交量同止蝕。'],
+['t7',2,'Danger Point 進場（觸線即入）嘅特點係？','價錢最低、盈虧比最好，但屬逆勢、失敗率較高',['成功率最高','一定要等收市確認','只可以用嚟沽空'],'另一種係確認後進場：有保護、成功率較高，但價錢較高。'],
+['t8',2,'時間維度嘅優先次序係？','月線 > 週線 > 日線 > 小時線',['小時線 > 日線 > 週線','日線最重要，其他唔使睇','全部一樣重要'],'週線到關鍵支持，就唔好單憑日線貿然沽空。'],
+['t9',2,'Sell into Strength 係指？','喺阻力位（例如 TRL）主動限價賣出鎖利',['跌穿支持先賣','升市加注','見到大陰燭即刻賣'],'Sell into Weakness 就係設 Backstop，跌穿支持先走。'],
+['c1',3,'J Law 嘅「2加1」通道畫法係？','兩點畫一條趨勢線，再平行複製到第三點',['三點畫一條線','畫兩條獨立嘅趨勢線','用均線代替'],'例：兩個 swing high 畫 DTL，平行複製到一個 swing low 得出 TSL。'],
+['c2',3,'2加1 畫好之後，邊幾個預測點最準？','第一、二個',['第五、六個','全部一樣準','越後越準'],'支持阻力被測試越多次越弱。'],
+['c3',3,'點樣判斷一條通道畫得合唔合理？','通道頂／底同既有橫向支持阻力區重疊',['越闊越好','一定要包晒所有 K 線','用 RSI 驗證'],'股價要先穿越更大阻力先到通道頂，就唔合理，要換 swing 點重畫。'],
+['c4',3,'明確下跌趨勢中突然向上突破通道頂，應該先點諗？','優先懷疑係誘多陷阱（夾淡倉）',['即刻追入','一定係見底','唔使理'],'機構會製造突破假象逼空頭止蝕，再重新出貨。'],
+['c5',3,'「四巫日」嘅成交量點處理？','唔具參考價值，分析時忽略',['當成強烈出貨訊號','當成強烈買入訊號','代表趨勢逆轉'],'美股 3、6、9、12 月第三個星期五（衍生品到期）成交量異常放大。'],
+['c6',3,'睇唔明沽空圖，J Law 建議？','將圖反轉，當成做多咁分析',['唔好沽空','只睇新聞','用更細嘅時間框架'],'反轉後支持變阻力，邏輯一樣。'],
+['c7',3,'幾時先應該畫通道？','已確認一浪高過一浪（或低過一浪），浪頂浪底同步',['任何時候都畫','只得 lower high 都夠','只喺橫行市畫'],'唔好為畫而畫。'],
+['m1',4,'J Law 點理解移動平均線？','會郁嘅趨勢線，一樣係支持阻力區間，突破後會角色互換',['神奇支持，一碰必反彈','滯後指標，完全冇用','只可以喺日線用'],'均線同其他支持阻力一樣有 Range。'],
+['m2',4,'可唔可以單憑「跌到 200MA」就買入？','唔可以，要再加 1–2 個其他理由',['可以，200MA 一定有支持','可以，但要用槓桿','只要係大型股就可以'],'均線唔可以單獨作入場理由；弱股跌到 200MA 唔係買點。'],
+['m3',4,'長期趨勢向上，但短期 10／20MA 向下，代表？','大方向冇變，短期回調',['趨勢已經逆轉','必定見頂','應該即刻沽空'],'均線斜度反映趨勢力量同方向。'],
+['m4',4,'錯過突破點，J Law 建議？','唔使 FOMO，通常有 Second Chance 拉回機會',['即刻追高','放棄呢隻股票永遠唔睇','用市價單全注入場'],'「技術水平到家嘅人唔需要 FOMO。」'],
+['m5',4,'「用利潤付風險」係指？','新倉位嘅風險由已累積嘅利潤承擔，唔郁本金',['用利潤加槓桿','賺錢後即刻全部提走','虧損時加注攤平'],'Palantir 加倉案例：用約 4% 利潤軟墊承擔新倉風險。'],
+['m6',4,'唔順手嘅時候應該？','減注（Cut Size），唔好加槓桿硬撐',['加大注碼追返','換更高風險嘅股票','停止設止蝕'],'只有順手時先可以進取。'],
+['m7',4,'大升後橫行，未跌穿 200MA、整理 20–30% 內，可能代表？','只係消化升幅，可能準備下一段上升',['一定係第三階段見頂','應該即刻沽空','股票已經冇用'],'APP 案例：盤整後一年內由約 $70 升到接近 $500。'],
+['m8',4,'J Law 常用嘅四條均線係？','10、20、50、200MA',['5、13、34、89MA','7、14、21、28MA','只用 200MA'],'輔助：63MA（季線）、150MA、250MA。'],
+['e1',5,'M.E.T.A. 係咩？','多重優勢交易區：多個獨立理由喺同一位置重疊',['一種技術指標','一種基本面估值法','Meta 公司股票'],'唔同策略嘅交易者喺同一位置一齊防守，合力更大。'],
+['e2',5,'長期贏錢嘅專業交易者勝率大約係？','40–55%',['80–90%','100%','10–20%'],'佢哋靠報酬風險比（例如 3:1）賺錢。'],
+['e3',5,'散戶長期輸錢嘅根本原因（J Law）係？','入場只得單一理由，唔知自己有冇優勢',['冇睇新聞','冇用 RSI','買得太少股票'],'追大陽燭、迷信均線、單憑突破入場，都係單一理由。'],
+['e4',5,'以下邊個係「強勁趨勢」嘅特徵？','大升細回、順勢放量、K 身少重疊、少碰 20MA',['陰陽燭各佔一半','經常跌穿 50MA','升跌成交量差唔多'],'越唔碰低週期均線（10MA 最強），動能越強。'],
+['e5',5,'支持同阻力應該當成？','一個區間（Zone），止蝕放區間外',['一條精確嘅線','止蝕放區間入面','冇用'],'J Law 八大秘訣嘅基礎原則。'],
+['e6',5,'升穿阻力之後，阻力會？','Flip 變成支持',['消失','變得更強嘅阻力','冇變化'],'跌穿支持就會變阻力。'],
+['e7',5,'突破後股價回頭測試突破位（Back test），代表？','正常 Price Action，唔一定係失敗',['形態一定失敗','要即刻止蝕','要即刻加槓桿'],'新手容易喺回測時被震走。'],
+['e8',5,'用槓桿 ETF（例如 SOXL）交易，應該睇邊幅圖判斷支持阻力？','正股／原指數 ETF（例如 SOXX）',['槓桿 ETF 本身','兩幅都唔使睇','只睇新聞'],'槓桿 ETF 嘅支持阻力位唔準確。'],
+['e9',5,'J Law 九大優勢入面，頭兩個係？','動能與趨勢、支持與阻力',['RSI 同 MACD','基本面同新聞','市盈率同股息'],''],
+['p1',6,'拉回買入法應該用喺？','第二階段上升趨勢（右側），最好早中期',['第四階段長期下跌嘅反彈','任何走勢','只用喺新股'],'下跌趨勢嘅反彈力度通常較弱。'],
+['p2',6,'Pullback Buy 應該喺幾時買？','回調後重新突破小型下降趨勢線（Pullback Recovery）',['跌緊落去途中接','跌到 50MA 一定買','見到大陰燭就買'],'冇水晶球：大調整往往由小調整開始。'],
+['p3',6,'拉回時間長短代表咩？','越短越強，代表大資金急住補貨',['越長越好','冇分別','越短越危險'],''],
+['p4',6,'Pullback Buy 嘅止蝕應該放？','回調前低點下方，控制 8–10% 內，理想 5–6%',['入場價下 1%','冇需要止蝕','200MA 下面'],''],
+['p5',6,'股價已經離開突破點超過 2–3%，J Law 點做？','冇特別理由唔追，等拉回',['即刻全注追','用槓桿追','沽空'],'VCP 突破後約一半機會會回調，甚至跌穿突破點。'],
+['p6',6,'Pullback Buy 突破時冇特別放量，係咪一定唔可以買？','唔係，放量係加分但唔係必要條件',['係，一定唔買','係，要即刻沽空','成交量完全冇意義'],'SNDX 案例突破時成交量冇特別放大。'],
+['b1',7,'J Law 認為贏家喺邊個位置開第一槍？','右側：升浪已確認、市場轉為上升趨勢',['左側：跌緊嘅時候抄底','最低位','新聞最差嗰日'],'最好嘅入場唔係最低位，而係風險最低嘅位置。'],
+['b2',7,'以下邊個「唔係」熊市見底 8 大信號之一？','RSI 跌穿 30',['10 週線升穿 40 週線','40 週線轉平或向上','50／200 天線以上成分股比例大升'],'J Law 唔用 RSI。'],
+['b3',7,'10 週線升穿 40 週線，但 40 週線仍然向下，點睇？','唔完整訊號，勝算較低，等 40 週線轉平向上',['一定見底','立即全倉','代表要沽空'],'1987 年股災後就係例子。'],
+['b4',7,'2015 年 12 月「疑似」見底交叉點樣識破係假訊號？','當時只有約 26% 股票喺 50 天線上，參與度不足',['睇 RSI','睇新聞','睇美元'],'第 7 點（廣泛個股參與）交叉驗證好重要。'],
+['b5',7,'見底第 7 個信號，理想比例係？','50 天線及 200 天線以上成分股約 70–90% 以上',['10% 以上','30% 以上','冇所謂'],''],
+['s1',8,'Confluence（多重確認重疊）嘅意思係？','多種獨立方法算出接近嘅目標位／時間，重疊越多把握越大',['只用一種方法但睇多幾次','聽多幾個分析師','同時買多隻股票'],'同 M.E.T.A. 一樣嘅邏輯，用喺大市預判。'],
+['s2',8,'越接近牛市尾段，應該？','降低進取程度，唔好喺情緒最高時用最大倉位',['加到最大倉位','用槓桿','完全唔設止蝕'],'Momentum trader 最常喺呢度陣亡，之後再報復性交易。'],
+['s3',8,'「豬喺牛市熊市都會被劏」係講？','貪心唔知進退嘅人',['做空嘅人','長線投資者','新手'],''],
+['d1',9,'「出貨日」嘅定義係？','下跌（或升幅大幅收窄）日，成交量高過前一日同 50 天平均',['任何下跌日','成交量最低嗰日','升幅最大嗰日'],'大戶趁強勢派貨，散戶睇唔出。'],
+['d2',9,'幾多個出貨日要進入戒備？','2–4 週內 4 個或以上',['1 個就要清倉','10 個先算','冇所謂'],''],
+['d3',9,'以下邊個係「背馳」見頂訊號？','指數創新高，但 50／200 天線以上成分股比例下降',['指數同比例一齊上升','成交量放大','新聞好正面'],'代表只得少數權重股撐住指數。'],
+['d4',9,'急漲性走勢（Climax Run）嘅結束訊號係？','出現幾個月至一年最大單日跌幅嘅大陰燭',['出現一支細陽燭','成交量縮細','RSI 超買'],'呢個就係最後逃生門。'],
+['d5',9,'以下邊個屬於「突兀走勢」？','單日波幅 3% 以上大陰燭，或跳空低開',['連續細陽燭','窄幅橫行','成交量縮細'],''],
+['d6',9,'計出貨日時，期貨結算日點處理？','唔計入',['當兩個計','一定計','只計升市'],'3／6／9／12 月第三個星期五成交量異常。'],
+['h1',10,'J Law 認為投資決定應該？','自己負全責',['跟大師','跟朋友','跟新聞'],'外判決策責任就永遠學唔到教訓。'],
+['h2',10,'「任何 50% 下跌都由 20% 下跌開始」想提醒你？','唔好低估重傷股繼續跌嘅空間，及早止蝕保留購買力',['跌 20% 一定反彈','跌 50% 一定見底','要向下攤平'],'花旗由約 $470 跌到 $8.89。'],
+['h3',10,'熊市入面最好嘅做法係？','持現金冬眠，等同大市背馳嘅領導股出現',['滿倉撈底','借錢加注','買最多人講嘅穩陣股'],''],
+['h4',10,'止蝕後股價反彈，代表？','唔代表止蝕錯：唔好用單一結果歸因成套決策',['以後唔好止蝕','止蝕一定錯','要即刻加倍買返'],''],
+['r1',11,'J Law 單一股票最大可承受風險係？','8%',['20%','50%','冇上限'],'整個組合最大虧損上限亦係 8%。'],
+['r2',11,'股價跌 50%，要升幾多先回本？','100%',['50%','75%','25%'],'虧損越大，回本所需升幅非線性放大。'],
+['r3',11,'谷底翻身第一招「救命標的」嘅特徵係？','大市創新低時佢冇創新低，一浪高過一浪（同大市背馳）',['股息最高','跌得最多','最多人推介'],'例：2016 年騰訊、舜宇光學。'],
+['r4',11,'谷底翻身第二招「兄弟姐妹」係指？','確認同板塊其他股票都一樣強勢',['買埋屋企人推介嘅股票','分散買晒所有板塊','只買龍頭股'],'整個板塊跑贏大市，先雙重確認係真趨勢。'],
+['r5',11,'虧損時嘅第二招保命法係？','關掉股市消息來源，避免搵安慰性資訊',['睇多啲新聞','問多幾個朋友','加注攤平'],'「永遠只有市場係啱嘅。」'],
+['r6',11,'「做多有時，做空有時，釣魚也有時」係講？','冬眠：咩都唔做都係一種策略',['要日日交易','一定要識做空','要買漁業股'],'財不入急門。'],
+['k1',12,'你手冊嘅強勢股量化條件，以下邊個「唔係」？','市盈率低過 15',['距 52 週低點至少 +30%','距 52 週高點唔超過 -25%','股價喺 200 日均線之上，30 週線向上'],''],
+['k2',12,'五大 M.E.T.A. 條件命中幾多項先考慮入場？','3–4 項，再等翌日可觀成交量確認',['1 項就夠','5 項全中先入','有感覺就入'],''],
+['k3',12,'1% 風險規則係指？','每筆交易最大虧損＝總資金 1%',['每筆只買總資金 1% 嘅股票','每日最多賺 1%','止蝕一律設 1%'],'倉位股數＝(總資金×1%)÷(入場價×止蝕%)。'],
+['k4',12,'止蝕越窄，可以承受嘅倉位？','越大',['越細','一樣','冇關係'],'用位置精準度換取倉位規模。'],
+['k5',12,'止蝕位被觸發時，手冊要求先檢查咩？','係咪所有 M.E.T.A. 優勢區間都失效',['新聞','RSI','朋友意見'],'仲有優勢支撐就暫緩，觀察 1–3 根 K 有冇收返。'],
+['k6',12,'持倉中想賣，但四大止盈訊號都冇出現，通常代表？','情緒（怕佢跌），應繼續持有',['一定要賣','要加注','要沽空對沖'],'冇客觀訊號就讓子彈飛。'],
+['k7',12,'股價偏離 200 日線 70–100% 以上，手冊建議？','先賣 1/3 至 1/2 鎖利',['全數加注','即刻沽空','唔使理'],'均值回歸引力增強。'],
+['k8',12,'「量價背離」要喺咩情況先當止盈訊號？','已大升 30–50% 以上嘅高檔',['剛突破 VCP 初期','任何時候','只喺熊市'],'突破初期量縮回調係洗盤換手。'],
+['k9',12,'期望值公式係？','勝率 × 平均賺 − 敗率 × 平均蝕',['勝率 × 平均賺','平均賺 − 平均蝕','勝率 − 敗率'],''],
+['f1',13,'你 Finviz 篩選設定嘅股價條件係？','高過 $20',['低過 $5','高過 $100','冇設'],''],
+['f2',13,'你 Finviz 篩選設定嘅 52 週高低條件係？','距 52 週高 0–10%',['距 52 週低 0–10%','創 52 週新低','冇設'],'強勢股應該接近新高，唔係接近新低。'],
+['f3',13,'你 Finviz 篩選設定嘅機構持股條件係？','高過 10%',['低過 1%','高過 90%','冇設'],''],
+['f4',13,'你 Finviz 篩選設定嘅季度營收增長條件係？','按年增長 > 5%',['負增長','> 100%','冇設'],'']
+].map(([id,L,q,a,w,ex])=>({id,L,q,a,w,ex}));
+
+/* 形態 × J Law：線名同重點 */
+const LN={asc:['水平阻力（前浪頂）','UTL'],desc:['DTL','水平支持'],sym:['DTL','UTL'],bullflag:['DTL','TSL'],bearflag:['TRL','UTL'],rw:['TRL','UTL'],fw:['DTL','TSL']};
+const JLP={
+asc:'上軌＝水平阻力（前浪頂），下軌＝UTL。突破後前浪頂會 Flip 做支持，低量回測不破係第二次入場機會（Back test）。',
+desc:'上軌＝DTL，下軌＝水平支持。跌穿後支持 Flip 做阻力，低量反彈返去係沽空位。',
+sym:'上軌＝DTL，下軌＝UTL。兩條線都係「區間」唔係死線，對錯睇收市同止蝕有冇觸發。',
+bullflag:'旗桿＝強勁趨勢（大升細回、少碰 20MA）；旗＝低量拉回嘅健康整理。J Law EP1：先半注突破旗形 DTL，確認再加半注；錯過就等拉回買入。',
+bearflag:'旗桿＝強勁下跌；旗＝低量反彈。熊旗通道＝TRL＋UTL 平行（可用 2加1 畫法）；跌穿下軌係順勢沽空位。',
+rw:'上軌＝TRL、下軌＝UTL，收窄。J Law：線越斜支持越弱——急斜嘅 UTL 一跌穿，就會搵下一條較平嘅支持。',
+fw:'上軌＝DTL、下軌＝TSL，收窄。等突破 DTL 先係確認；喺 TSL 抄底屬逆勢，只適合有經驗嘅人。'};
+const ITEM_JL=['J Law：先數線、睇斜度；趨勢線用兩個 swing 點就畫得到（兩點式）。',
+ 'J Law：一切形態都係供求——股票升＝需求大過供應，形態就係供應被消化嘅過程。',
+ 'J Law：方向要順大市週期；強勁趨勢中嘅整理，通常順勢突破。',
+ 'J Law：等收市確認、放量更好；距突破點已超過 2–3% 唔追，錯過就等拉回買入。',
+ 'J Law：支持阻力係區間，止蝕放區間外；太貼容易被 Shakeout 洗走。單一股票風險上限 8%。',
+ 'J Law：多數利潤喺關鍵阻力（TRL、通道頂）先鎖定，只留 20–30% 搏更大升幅。',
+ 'J Law 假突破三問：穿越時有冇放量？有冇觸發止蝕？0–3 根 K 內有冇收返？'];
+
+/* ================= 情境計算題（隨機生成） ================= */
+const pick=a=>a[Math.floor(Math.random()*a.length)],ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),rf=(a,b,d)=>+(a+Math.random()*(b-a)).toFixed(d==null?2:d);
+const usd=x=>'$'+(+x).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+function uniqOpts(c,ws){const seen=new Set([c]),o=[{t:c,ok:true}];for(const w of ws){if(o.length>=4)break;if(!seen.has(w)){seen.add(w);o.push({t:w,ok:false})}}return o}
+const EDGES=[['股價回落到之前突破嘅前浪頂（阻力已變支持）','附近冇明顯前浪頂或橫向區間'],['回落觸及由兩個 swing low 畫出嘅上升趨勢線（UTL）','已經跌穿上升趨勢線（UTL）'],['啱啱突破回調期間嘅小型下降趨勢線（DTL）','仍然喺回調嘅下降趨勢線（DTL）之下'],['同時接近 20MA 同 50MA','距離 10／20／50MA 都好遠'],['拉回期間成交量明顯低過 50 日平均','拉回期間成交量放大，高過 50 日平均']];
+const NOISE=['RSI(14) 跌到 28，「超賣」','財經新聞話分析師上調目標價','MACD 出現金叉','朋友話呢隻一定升'];
+const EXITS=['全數賣出（防守，唔係止盈）','分批賣出 1/2 或全出','賣出 1/3 鎖利，餘下沿 10／20 日線防守','分批賣出','冇客觀訊號＝情緒，繼續持有'];
+const SCR=['合格，可以入候選池','唔合格：距 52 週低點未夠 +30%','唔合格：距 52 週高點超過 -25%','唔合格：股價低過 200 日線','唔合格：30 週線向下'];
+const DRILLS={
+size:{name:'倉位計算（1% 規則）',L:12,gen(){const cap=pick([10000,20000,30000,50000,100000]),E=rf(15,300),sp=pick([3,4,5,6,7,8,10]),risk=cap*.01,per=E*sp/100,sh=Math.floor(risk/per);
+ return{q:`總資金 <b>${usd(cap)}</b>，入場價 <b>${usd(E)}</b>，止蝕設喺 <b>-${sp}%</b>。按 1% 風險規則，應該買幾多股？`,
+ o:uniqOpts(sh+' 股',[Math.floor(risk/E),sh*10,Math.floor(cap*sp/100/E),Math.max(1,Math.round(sh/2)),sh+Math.max(2,Math.round(sh*.3))].map(x=>x+' 股')),
+ ex:`最大虧損＝${usd(cap)} × 1%＝${usd(risk)}<br>每股風險＝${usd(E)} × ${sp}%＝${usd(per.toFixed(2))}<br>股數＝${usd(risk)} ÷ ${usd(per.toFixed(2))}＝<b>${sh} 股</b>（投入約 ${usd(Math.round(sh*E))}，佔資金 ${(sh*E/cap*100).toFixed(1)}%）`}}},
+breakeven:{name:'回本所需升幅',L:11,gen(){const L=pick([8,10,15,20,25,30,40,50,60,75]),need=L/(100-L)*100,f=x=>x.toFixed(1).replace(/\.0$/,'')+'%';
+ return{q:`一隻股票由買入價跌咗 <b>${L}%</b>，要升幾多先回本？`,o:uniqOpts(f(need),[f(L),f(need*1.5),f(L*.8),f(need*.7),f(need+10)]),
+ ex:`回本升幅＝跌幅 ÷ (1 − 跌幅)＝${L}% ÷ ${100-L}%＝<b>${f(need)}</b>。J Law：單一股票最多蝕 8%（只需升 8.7% 回本）；蝕 50% 就要升 100%。`}}},
+expect:{name:'期望值',L:5,gen(){const w=pick([30,35,40,45,50,55]),a=ri(8,25),b=ri(3,8),E=w/100*a-(1-w/100)*b,f=x=>(x>=0?'+':'')+x.toFixed(2)+'%';
+ return{q:`你嘅交易紀錄：勝率 <b>${w}%</b>，平均賺 <b>${a}%</b>，平均蝕 <b>${b}%</b>。每單期望值係？`,o:uniqOpts(f(E),[f(a-b),f(w/100*a),f(-E||1),f(E*2),f(E+1.5)]),
+ ex:`期望值＝勝率×平均賺 − 敗率×平均蝕＝${w}%×${a}% − ${100-w}%×${b}%＝<b>${f(E)}</b>。${E>0?'正期望值：即使勝率唔高，長期重複都會賺。':'負期望值：要提高報酬風險比或者縮細虧損。'}`}}},
+rr:{name:'報酬風險比 R',L:5,gen(){const E=rf(20,250),s=pick([2,3,4,5,6,7,8]),t=pick([8,10,12,15,18,20,25,30]),f=x=>x.toFixed(1)+'R';
+ return{q:`入場 <b>${usd(E)}</b>，止蝕 <b>${usd((E*(1-s/100)).toFixed(2))}</b>，目標 <b>${usd((E*(1+t/100)).toFixed(2))}</b>。報酬風險比係幾多？`,o:uniqOpts(f(t/s),[f(s/t),f(t-s),f((t+s)/s),f(t/s*2),f(t/s+1),f(t/s+2.5)]),
+ ex:`風險＝${s}%，回報＝${t}%，R＝${t} ÷ ${s}＝<b>${f(t/s)}</b>。J Law 最鍾意 5R 交易；VCP 平均賺 12–14%、蝕 4–5%，大約 3R。`}}},
+meta:{name:'M.E.T.A. 入場決策',L:12,gen(){const hit=EDGES.map(()=>Math.random()<.55),c=hit.filter(Boolean).length,
+ lines=shuf(Math.random,[...EDGES.map((e,i)=>hit[i]?e[0]:e[1]),...shuf(Math.random,NOISE).slice(0,ri(1,2))]),dec=n=>n>=3?'考慮入場：等翌日可觀成交量確認先入':'唔入場：繼續觀察',f=n=>`${n} 項｜${dec(n)}`;
+ return{q:`第二階段強勢股回調，你觀察到：<ul>${lines.map(x=>'<li>'+x+'</li>').join('')}</ul>按手冊五大 M.E.T.A. 條件，命中幾多項？應該點做？`,
+ o:uniqOpts(f(c),[f(Math.min(5,c+1)),f(Math.max(0,c-1)),`${c} 項｜${c>=3?'即刻全注入場，唔使等確認':'考慮入場：等翌日可觀成交量確認先入'}`,f(Math.min(5,c+2)),f(Math.max(0,c-2)),`${c} 項｜加槓桿全注入場`]),
+ ex:`命中：${EDGES.filter((e,i)=>hit[i]).map(e=>e[0]).join('；')||'冇'}（共 ${c} 項）。RSI、MACD、新聞、朋友意見都唔計——J Law 只睇價格、成交量同支持阻力。規則：命中 3–4 項先考慮，再等翌日可觀成交量確認。`}}},
+dist:{name:'出貨日計數',L:9,gen(){const n=15,rows=[],list=[],fw=Math.random()<.4?ri(0,n-1):-1;let cnt=0;
+ for(let i=0;i<n;i++){const r=Math.random();let ch;if(r<.35)ch=-rf(.1,2.2);else if(r<.5)ch=rf(0,.15);else ch=rf(.3,1.8);const vp=Math.random()<.55,va=Math.random()<.55,isD=i!==fw&&ch<.2&&vp&&va;if(isD){cnt++;list.push(i+1)}rows.push({ch,vp,va,fw:i===fw})}
+ const f=k=>`${k} 個｜${k>=4?'進入戒備':'未到戒備線'}`;
+ const tb=`<div class="scroll"><table><tr><th>日</th><th>升跌</th><th>量 vs 前日</th><th>量 vs 50 日均</th></tr>${rows.map((r,i)=>`<tr><td>${i+1}${r.fw?' <span class="small">期貨結算日</span>':''}</td><td class="${r.ch<0?'bad':''}">${r.ch>=0?'+':''}${r.ch.toFixed(2)}%</td><td>${r.vp?'高':'低'}</td><td>${r.va?'高':'低'}</td></tr>`).join('')}</table></div>`;
+ return{q:`以下係某指數最近 15 個交易日（約 3 週）。出貨日＝下跌或升幅細過 0.2%，而且成交量高過前日<b>同</b> 50 日平均。有幾多個出貨日？${tb}`,
+ o:uniqOpts(f(cnt),[f(cnt+1),f(Math.max(0,cnt-1)),`${cnt} 個｜${cnt>=4?'未到戒備線':'進入戒備'}`,f(cnt+2)]),
+ ex:`${list.length?'第 '+list.join('、')+' 日':'冇一日'}符合${fw>=0?'；第 '+(fw+1)+' 日係期貨結算日，唔計':''}，共 <b>${cnt}</b> 個。J Law：2–4 週內 ≥4 個出貨日＝進入戒備。`}}},
+exit:{name:'止盈決策流程',L:12,gen(){const t=ri(0,4),yn=b=>b?'有':'冇',b50=t===0,cl=t===1||(t===0&&Math.random()<.4),dev=t===2?ri(72,110):t<2&&Math.random()<.4?ri(72,100):ri(15,60),hv=t===3||(t<3&&Math.random()<.4);
+ return{q:`你持有一隻已大升嘅股票，心入面想賣。現況：<ul><li>跌穿初始止蝕或 50 日線：<b>${b50?'係':'冇'}</b></li><li>近期出現歷史天量暴漲（Climax Top）：<b>${yn(cl)}</b></li><li>偏離 200 日線：<b>+${dev}%</b></li><li>高檔爆量收黑／連續數週量縮漲唔郁：<b>${yn(hv)}</b></li></ul>按手冊止盈流程（Q1→Q5），應該點做？`,
+ o:[{t:EXITS[t],ok:true},...shuf(Math.random,EXITS.filter((x,i)=>i!==t)).slice(0,3).map(x=>({t:x,ok:false}))],
+ ex:'流程由上而下，第一個「係」就決定動作：Q1 跌穿止蝕／50 日線 → 全數賣出；Q2 Climax Top → 分批賣 1/2 或全出；Q3 偏離 200 日線 ≥70% → 賣 1/3；Q4 高檔爆量收黑／量縮 → 分批賣；Q5 以上皆非 → 係情緒，繼續持有。'}}},
+stop:{name:'止蝕決策流程',L:12,gen(){const t=ri(0,3),base='跌穿初始止蝕位，但只係跌穿 UTL；股價仍然企喺 20MA 同前浪頂支持區入面，跌穿時成交量低';
+ const sc=[['跌穿初始止蝕位，同時跌穿 20MA、前浪頂支持區同 UTL（全部 M.E.T.A. 優勢失效），而且放量',0],[base+'，啱啱發生',1],[base+'；之後第 2 根 K 已經收返 UTL 之上',2],[base+'；之後 3 根 K 都收唔返，仲跌穿埋 20MA',0]][t];
+ const O=['執行止蝕賣出','暫緩賣出，觀察 1–3 根 K 有冇收返','持有觀察（洗盤已收復）','向下加注攤平平均價'];
+ return{q:`情況：${sc[0]}。按手冊止蝕流程，應該點做？`,o:O.map((x,i)=>({t:x,ok:i===sc[1]})),
+ ex:'流程：跌穿止蝕 → 係咪「全部」M.E.T.A. 優勢都失效？係 → 止蝕；否 → 暫緩，觀察 1–3 根 K → 收返就持有，收唔返就止蝕。無論點都唔會向下攤平。'}}},
+screen:{name:'強勢股篩選',L:12,gen(){const t=ri(0,4),low=rf(20,150);let P=low*rf(1.4,2.2),hi=P/rf(.8,.98),ma=P*rf(.75,.92),up=true;
+ if(t===1){P=low*rf(1.05,1.25);hi=P/rf(.8,.95);ma=P*rf(.85,.95)}else if(t===2)hi=P/rf(.55,.72);else if(t===3)ma=P*rf(1.05,1.2);else if(t===4)up=false;
+ const fl=P/low*100-100,fh=(1-P/hi)*100;
+ return{q:`模擬股：現價 <b>${usd(P.toFixed(2))}</b>，52 週低 ${usd(low.toFixed(2))}，52 週高 ${usd(hi.toFixed(2))}，200 日線 ${usd(ma.toFixed(2))}，30 週線<b>${up?'向上':'向下'}</b>。按手冊強勢股條件，合唔合格？`,
+ o:[{t:SCR[t],ok:true},...shuf(Math.random,SCR.filter((x,i)=>i!==t)).slice(0,3).map(x=>({t:x,ok:false}))],
+ ex:`距 52 週低 +${fl.toFixed(1)}%（要 ≥30%）｜距 52 週高 -${fh.toFixed(1)}%（要 ≤25%）｜${P>ma?'高過':'低過'} 200 日線｜30 週線${up?'向上':'向下'}。`}}}};
+
+/* ================= 概念快問＋情境計算（共用 MC） ================= */
+function startMC(kind,filter){const pool=kind==='concept'?QB.filter(q=>!filter||q.L===filter).length:99;
+ SES={mode:kind,kind,filter:filter||null,n:0,total:Math.min(kind==='concept'?10:(filter?4:6),pool),res:[],miss:[],used:new Set(),lastL:null,lastK:null};nextMC()}
+function pickConcept(){const t=now();let best=null,bs=-1e9;for(const q of QB){if(SES.filter&&q.L!==SES.filter)continue;if(SES.used.has(q.id))continue;
+ const c=S.cards['Q:'+q.id];let sc=Math.random()*20;if(!c||!c.seen)sc+=50;else if(c.due<=t)sc+=100;else sc+=(1-c.ok/c.seen)*40-20;
+ if(q.L===SES.lastL&&!SES.filter)sc-=40;if(sc>bs){bs=sc;best=q}}return best}
+function pickDrill(){const t=now(),ks=SES.filter?[SES.filter]:Object.keys(DRILLS);let best=ks[0],bs=-1e9;
+ for(const k of ks){const c=S.cards['S:'+k];let sc=Math.random()*20;if(!c||!c.seen)sc+=50;else if(c.due<=t)sc+=100;else sc+=(1-c.ok/c.seen)*40;if(k===SES.lastK&&ks.length>1)sc-=60;if(sc>bs){bs=sc;best=k}}return best}
+function nextMC(){if(SES.n>=SES.total)return mcSummary();let it;
+ if(SES.kind==='concept'){const q=pickConcept();if(!q){SES.total=SES.n;return mcSummary()}SES.used.add(q.id);SES.lastL=q.L;
+  it={id:'Q:'+q.id,L:q.L,tag:'第 '+q.L+' 課・'+jlT(q.L).t,q:q.q,o:shuf(Math.random,[{t:q.a,ok:true},...q.w.map(t=>({t,ok:false}))]),ex:q.ex}}
+ else{const k=pickDrill();SES.lastK=k;const d=DRILLS[k],g=d.gen();it={id:'S:'+k,dk:k,L:d.L,tag:'🧮 '+d.name,q:g.q,o:shuf(Math.random,g.o),ex:g.ex}}
+ CUR={it,done:false};
+ view(`<div class="card">${back}<div class="tags"><span class="tag">${SES.kind==='concept'?'🧠 概念快問':'🧮 情境計算'} ${SES.n+1}/${SES.total}</span><span class="tag hl">${it.tag}</span></div>
+ <div class="qtext">${it.q}</div><div>${it.o.map((o,i)=>`<button class="mco" data-i="${i}">${i+1}. ${o.t}</button>`).join('')}</div>
+ <label class="guess"><input type="checkbox" id="gs"> 🎲 我係估</label><p class="small">鍵盤：1–${it.o.length} 作答，Enter 下一題</p><div id="fb"></div></div>`);
+ document.querySelectorAll('.mco').forEach(b=>b.onclick=()=>answerMC(+b.dataset.i));
+ KEYH=e=>{const n=+e.key;if(!CUR.done&&n>=1&&n<=it.o.length)answerMC(n-1);else if(CUR.done&&e.key==='Enter'){SES.n++;nextMC()}}}
+function answerMC(i){if(CUR.done)return;CUR.done=true;const it=CUR.it,ok=it.o[i].ok,g=$('gs').checked;
+ review(it.id,!ok?1:g?3:4);bump(S.lstat,it.L,ok);if(it.dk)bump(S.dstat,it.dk,ok);else{S.cq.push(ok?1:0);if(S.cq.length>200)S.cq.shift()}
+ tick();save();SES.res.push(ok?1:0);if(!ok)SES.miss.push(it);
+ document.querySelectorAll('.mco').forEach((b,j)=>{b.disabled=true;if(it.o[j].ok)b.classList.add('right');else if(j===i)b.classList.add('wrong')});
+ $('fb').innerHTML=`<p class="${ok?'ok':'bad'}">${ok?(g?'✔ 估中（唔當識，會提早再考）':'✔ 正確'):'✘ 錯咗'}</p>${it.ex?`<div class="${ok?'okbox':'warn'}">${it.ex}</div>`:''}
+ <button class="alt sm" id="src">📘 溫返第 ${it.L} 課：${jlT(it.L).t}</button><br><button id="nx">下一題 ⏎</button>`;
+ on('src',()=>jlDetail(it.L));on('nx',()=>{SES.n++;nextMC()})}
+function mcSummary(){const ok=SES.res.reduce((a,b)=>a+b,0),kind=SES.kind,flt=SES.filter;
+ view(`<div class="card"><h1>${kind==='concept'?'🧠 概念快問':'🧮 情境計算'}完成：${ok}/${SES.res.length}</h1>
+ ${SES.miss.length?`<h3>錯咗嘅題目</h3>${SES.miss.map(it=>`<div class="warn"><div>${it.q}</div><b>正解：${it.o.find(o=>o.ok).t}</b><div class="small">第 ${it.L} 課・${jlT(it.L).t}</div></div>`).join('')}<p class="small">錯咗嘅題目 10 分鐘後到期，會優先再出。</p>`:'<div class="okbox">全對！</div>'}
+ <button id="again">再來一輪</button><button class="alt" id="jl">📘 課程列表</button><button class="alt" id="h">返回主頁</button></div>`);
+ on('again',()=>startMC(kind,flt));on('jl',jlHome);on('h',home)}
+
+/* ================= 課程頁面 ================= */
+function jlHome(){if(!S)load();view(`<div class="card">${back}<h2>📘 J Law 交易系統</h2><p class="small">整理自你嘅 J Law 課堂筆記（公開 YouTube 教學）、量化策略手冊同 Finviz 設定。每課先睇重點，再主動回憶，之後用概念快問同情境題鞏固。</p>
+ <button id="cq">🧠 概念快問</button><button id="dr">🧮 情境計算</button><button id="vc">📈 VCP 辨識</button></div>
+ <div class="lgrid">${JL.map(l=>{const c=S.cards['J:'+l.id];return`<div class="lcard" data-jl="${l.id}"><div class="small">第 ${l.id} 課・${l.src}</div><b>${l.t}</b> ${S.jl[l.id]?'✅':''}<div class="small">${l.mn}</div><div class="small">題目準確率 ${pct(S.lstat[l.id])}${c?'｜回憶 '+fmtDue(c.due):''}</div></div>`}).join('')}</div>`);
+ on('cq',()=>startMC('concept'));on('dr',()=>startMC('drill'));on('vc',startVCP);document.querySelectorAll('[data-jl]').forEach(b=>b.onclick=()=>jlDetail(+b.dataset.jl))}
+function jlDetail(L){if(!S)load();const l=jlT(L);S.jl[L]=true;save();const nq=QB.filter(q=>q.L===L).length,ds=Object.keys(DRILLS).filter(k=>DRILLS[k].L===L);
+ view(`<div class="card">${back} <button class="alt sm" id="jh">← 課程列表</button><div class="tags"><span class="tag">第 ${L} 課</span><span class="tag">${l.src}</span></div><h2>${l.t}</h2><p class="mn">💡 ${l.mn}</p>
+ <ol class="pts">${l.pts.map(x=>'<li>'+x+'</li>').join('')}</ol>
+ ${l.rel.length?`<p>相關形態：${l.rel.map(k=>`<button class="alt sm" data-p="${k}">${PATTERNS[k].name}</button>`).join('')}</p>`:''}
+ <h3>練習</h3><button id="rc">🧠 主動回憶本課</button>${nq?`<button id="qz">🎯 本課題目（${nq} 題）</button>`:''}${ds.map(k=>`<button class="alt" data-d="${k}">🧮 ${DRILLS[k].name}</button>`).join('')}${L===1?'<button class="alt" id="vc">📈 VCP 辨識</button>':''}
+ <p class="small">${L>1?`<button class="alt sm" id="pv">← 第 ${L-1} 課</button>`:''}${L<JL.length?`<button class="alt sm" id="nv">第 ${L+1} 課 →</button>`:''}</p></div>`);
+ on('jh',jlHome);on('rc',()=>jlRecall(L));on('qz',()=>startMC('concept',L));on('vc',startVCP);on('pv',()=>jlDetail(L-1));on('nv',()=>jlDetail(L+1));
+ document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>learnDetail(b.dataset.p));document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>startMC('drill',b.dataset.d))}
+function jlRecall(L){const l=jlT(L);
+ view(`<div class="card">${back}<div class="tags"><span class="tag">🧠 課堂回憶</span><span class="tag">第 ${L} 課</span></div><h2>${l.t}</h2>
+ <p>唔睇筆記，盡量講出本課 <b>${l.pts.length}</b> 個重點。</p><textarea id="ra" placeholder="寫低你記得嘅重點…（可以留空，但寫出嚟效果更好）"></textarea><button id="show">顯示重點</button><div id="ans"></div></div>`);
+ on('show',()=>{$('show').hidden=true;const mine=$('ra').value.trim();
+  $('ans').innerHTML=`${mine?`<div class="warn"><b>你寫嘅</b>：${esc(mine)}</div>`:''}<ol class="pts">${l.pts.map(x=>'<li>'+x+'</li>').join('')}</ol><p class="mn">💡 ${l.mn}</p>
+  <h3>自評：你記得幾多？</h3><div class="rate">${[[1,'😵 唔記得'],[3,'🤔 一半'],[4,'🙂 大部分'],[5,'😎 全部']].map(([q,t])=>`<button data-q="${q}">${t}</button>`).join('')}</div>`;
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const c=review('J:'+L,+b.dataset.q);S.jl[L]=true;tick();save();
+   view(`<div class="card"><h2>🧠 已記錄</h2><p>第 ${L} 課下次回憶：${fmtDue(c.due)}</p><button id="qz">🎯 做本課題目</button><button class="alt" id="jh">📘 課程列表</button><button class="alt" id="h">返回主頁</button></div>`);
+   on('qz',()=>startMC('concept',L));on('jh',jlHome);on('h',home)})})}
+
+/* ================= VCP 辨識（圖表） ================= */
+const VCPV={valid:'有效 VCP',down:'無效：唔係上升趨勢（價、50MA、200MA 未多頭排列）',wide:'無效：收縮冇逐次收窄（反而擴大）',loose:'無效：最後一次收縮超過 10%'};
+function sma(a,n){const o=[];let s=0;for(let i=0;i<a.length;i++){s+=a[i];if(i>=n)s-=a[i-n];o.push(i>=n-1?s/n:null)}return o}
+function genVCP(seed,variant){const R=mb(seed),rnd=(a,b)=>a+(b-a)*R(),bars=[],vb=rnd(.8,1.5)*1e6;let p=rnd(30,150);
+ const add=(c,vm,vol)=>{const o=bars.length?bars[bars.length-1].c:c,a=c*(vol||.012);bars.push({o,c,h:Math.max(o,c)+R()*a*.7,l:Math.min(o,c)-R()*a*.7,v:vb*vm*(.75+R()*.5)})};
+ const up=variant!=='down',nA=230,dr=Math.log(1+(up?rnd(.7,1):-rnd(.3,.4)))/nA;
+ for(let i=0;i<nA;i++){p*=Math.exp(dr+(R()-.5)*.03);add(p,1)}
+ let D;
+ if(variant==='wide')D=[rnd(8,10),rnd(14,17),rnd(22,27)];
+ else if(variant==='loose')D=[rnd(26,32),rnd(18,22),rnd(12.5,16)];
+ else{const d1=rnd(20,32),dn=rnd(4.5,8),n=R()<.5?3:4;D=n===3?[d1,Math.sqrt(d1*dn)*rnd(.92,1.08),dn]:[d1,Math.pow(d1,2/3)*Math.pow(dn,1/3),Math.pow(d1,1/3)*Math.pow(dn,2/3),dn]}
+ const ndn=[13,9,7,5],nup=[11,8,6,5],vd=variant==='loose'?[1.25,1.15,1.2]:[1.35,1,.7,.5],cs=[];let H=p;
+ D.forEach((d,k)=>{const last=k===D.length-1,Lo=H*(1-d/100),i0=bars.length-1,vol=last&&variant!=='loose'?.006:.011;
+  for(let i=1;i<=ndn[k];i++){const t=i/ndn[k];add(H-(H-Lo)*(t*t*(3-2*t))+(R()-.5)*H*.003,vd[k],vol)}
+  const i1=bars.length-1,H2=last?H*(1-rnd(.006,.015)):H*(1-rnd(0,.012));
+  for(let i=1;i<=nup[k];i++){const t=i/nup[k];add(Lo+(H2-Lo)*(t*t*(3-2*t))+(R()-.5)*H*.003,last?.55:.85,vol)}
+  if(last)for(let i=0;i<3;i++)add(H2*(1+(R()-.5)*.005),.4,.004);
+  cs.push({i0,i1});H=H2});
+ cs.forEach((c,k)=>{const end=k<cs.length-1?cs[k+1].i0:bars.length-1;let hi=-1,hiI=c.i0;for(let i=Math.max(0,c.i0-2);i<=c.i1;i++)if(bars[i].h>hi){hi=bars[i].h;hiI=i}
+  let lo=1e12,loI=c.i1;for(let i=hiI;i<=Math.min(end,c.i1+2);i++)if(bars[i].l<lo){lo=bars[i].l;loI=i}Object.assign(c,{hi,hiI,lo,loI,dd:(hi-lo)/hi*100})});
+ const lc0=cs[cs.length-1],piv=Math.max(...bars.slice(lc0.loI).map(b=>b.h)),loL=lc0.lo,fut=[];let lc=bars[bars.length-1].c;
+ const pf=(c,vm)=>{fut.push({o:lc,c,h:Math.max(lc,c)*(1+R()*.006),l:Math.min(lc,c)*(1-R()*.006),v:vb*vm*(.8+R()*.4)});lc=c};
+ if(variant==='valid'){pf(piv*1.035,2.8);const e=piv*(1+rnd(.13,.22));for(let k=1;k<=9;k++)pf(lc+(e-lc)/(10-k)+(R()-.5)*piv*.01,1.3)}
+ else{pf(piv*1.006,1.1);const e=loL*.95;for(let k=1;k<=9;k++)pf(lc+(e-lc)/(10-k)+(R()-.5)*piv*.01,1.4)}
+ const all=bars.concat(fut),m50=sma(all.map(b=>b.c),50),m200=sma(all.map(b=>b.c),200),vA=sma(all.map(b=>b.v),50),e=bars.length-1;
+ return{variant,bars,fut,cs,piv,entry:piv*1.002,stop:loL*.99,m50,m200,vA,e,vis0:Math.max(0,cs[0].hiI-45),
+  trendOk:bars[e].c>m50[e]&&m50[e]>m200[e]&&m200[e]>m200[e-20]&&m50[e]>=m50[e-5]}}
+function vcpSpec(g){const d=g.cs.map(c=>c.dd),last=d[d.length-1],dec=d.every((x,i)=>i===0||x<d[i-1]);
+ return{valid:g.trendOk&&dec&&last<10&&d[0]<36,down:!g.trendOk&&dec&&last<10,wide:g.trendOk&&!dec,loose:g.trendOk&&last>=10}[g.variant]}
+function genVCPok(seed,variant){let g;for(let a=0;a<40;a++){g=genVCP(seed+a*7919,variant);if(vcpSpec(g))return g}return g}
+function drawVCP(cv,v,reveal){const cs=getComputedStyle(document.documentElement),V=(n,d)=>cs.getPropertyValue(n).trim()||d;
+ const BG=V('--chart-bg','#fff'),GR=V('--chart-grid','#eee'),AX=V('--chart-axis','#777'),SIMC=V('--sim','#e65100'),C50=V('--res','#e65100'),C200=V('--user','#8e24aa'),OK=V('--ok','#0a7d32'),BAD=V('--bad','#c62828');
+ const dpr=window.devicePixelRatio||1,W=760,H=460;cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle=BG;g.fillRect(0,0,W,H);
+ const s0=v.vis0,all=v.bars.concat(v.fut),nV=v.bars.length,end=reveal?all.length:nV,slots=all.length-s0,L=8,Rm=70,top=14,PH=300,vt=top+PH+16,VH=H-vt-14,sl=(W-L-Rm)/slots;
+ let hi=-1e12,lo=1e12;for(let i=s0;i<end;i++){hi=Math.max(hi,all[i].h);lo=Math.min(lo,all[i].l);for(const m of[v.m50[i],v.m200[i]])if(m!=null){hi=Math.max(hi,m);lo=Math.min(lo,m)}}
+ if(reveal){hi=Math.max(hi,v.entry);lo=Math.min(lo,v.stop)}const pad=(hi-lo)*.06;hi+=pad;lo-=pad;
+ const X=i=>L+(i-s0+.5)*sl,Y=x=>top+(hi-x)/(hi-lo)*PH;let vm=0;for(let i=s0;i<end;i++)vm=Math.max(vm,all[i].v);
+ g.font='11px sans-serif';g.textBaseline='middle';
+ for(let k=0;k<=4;k++){const x=lo+(hi-lo)*k/4,y=Y(x);g.strokeStyle=GR;g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();g.fillStyle=AX;g.fillText(x.toFixed(2),W-Rm+4,y)}
+ for(let i=s0;i<end;i++){const b=all[i],col=b.c>=b.o?'#d93025':'#0f9d58',x=X(i),w=sl*.62;g.strokeStyle=g.fillStyle=col;g.beginPath();g.moveTo(x,Y(b.h));g.lineTo(x,Y(b.l));g.stroke();
+  g.fillRect(x-w/2,Math.min(Y(b.o),Y(b.c)),w,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));const vh=b.v/vm*VH;g.globalAlpha=i>=nV?.55:.8;g.fillRect(x-w/2,vt+VH-vh,w,vh);g.globalAlpha=1}
+ const line=(arr,col,lw,yf)=>{g.strokeStyle=col;g.lineWidth=lw;g.beginPath();let st=false;for(let i=s0;i<end;i++){const m=arr[i];if(m==null)continue;const y=yf(m);if(!st){g.moveTo(X(i),y);st=true}else g.lineTo(X(i),y)}g.stroke();g.lineWidth=1};
+ line(v.m50,C50,2,Y);line(v.m200,C200,2,Y);line(v.vA,AX,1.2,m=>vt+VH-m/vm*VH);
+ g.font='bold 11px sans-serif';g.fillStyle=C50;g.fillText('50MA',X(end-1)-34,Y(v.m50[end-1])-10);g.fillStyle=C200;g.fillText('200MA',X(end-1)-40,Y(v.m200[end-1])+12);
+ g.fillStyle=AX;g.font='11px sans-serif';g.fillText('成交量（灰線＝50 日平均）',L+2,vt+6);
+ g.fillStyle=SIMC;g.font='bold 12px sans-serif';g.fillText('模擬教學圖（非真實市場）　紅升綠跌',L+4,top+8);g.font='11px sans-serif';
+ if(reveal){v.cs.forEach(c=>{g.strokeStyle=AX;g.setLineDash([4,3]);g.beginPath();g.moveTo(X(c.hiI),Y(c.hi));g.lineTo(X(c.loI),Y(c.lo));g.stroke();g.setLineDash([]);
+   g.fillStyle=c.dd<10?OK:BAD;g.font='bold 12px sans-serif';g.fillText('-'+c.dd.toFixed(1)+'%',X((c.hiI+c.loI)/2)-14,Y(c.lo)+14)});
+  const lc=v.cs[v.cs.length-1],x0=X(lc.hiI);[[v.entry,OK,'入場'],[v.stop,BAD,'止蝕']].forEach(([y,c,t])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash([5,4]);g.beginPath();g.moveTo(x0,Y(y));g.lineTo(W-Rm,Y(y));g.stroke();g.setLineDash([]);g.lineWidth=1;g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t+' '+y.toFixed(2),W-Rm+4,Y(y)+(t==='止蝕'?8:-8))});
+  const dx=X(nV-1)+sl/2;g.strokeStyle=AX;g.setLineDash([3,3]);g.beginPath();g.moveTo(dx,top);g.lineTo(dx,vt+VH);g.stroke();g.setLineDash([]);g.fillStyle=AX;g.font='11px sans-serif';g.fillText('後續走勢 →',dx+4,top+PH-6)}}
+function buildVCPQs(v){const qs=[],vv=v.variant,n=v.cs.length,last=v.cs[n-1],f=x=>'$'+x.toFixed(2),e=v.e,risk=(v.entry-v.stop)/v.entry*100;
+ const trendTxt=`收市 ${f(v.bars[e].c)}、50MA ${f(v.m50[e])}（${v.m50[e]>=v.m50[e-5]?'向上':'向下'}）、200MA ${f(v.m200[e])}（${v.m200[e]>v.m200[e-20]?'向上':'向下'}）`,depth=v.cs.map(c=>'-'+c.dd.toFixed(1)+'%').join(' → ');
+ qs.push({p:'呢幅圖係咪有效 VCP？',o:Object.entries(VCPV).map(([k,t])=>({t,ok:k===vv})),ex:`趨勢：${trendTxt}。收縮：${depth}。`+{valid:'三個技巧都符合。',down:'收縮形狀似 VCP，但出現喺下跌趨勢——J Law：下跌趨勢中嘅 VCP 好易失敗。',wide:'收縮一次比一次大，代表供應增加，唔係 VCP。',loose:'最後一次收縮超過 10%，冇形成 Tight Area，供應未消化完。'}[vv]});
+ const cnt=[n-1,n,n+1,n+2].filter(x=>x>=2);while(cnt.length<4)cnt.push(cnt[cnt.length-1]+1);
+ qs.push({p:'圖中有幾多次收縮？',o:cnt.slice(0,4).map(x=>({t:x+' 次',ok:x===n})),ex:`共 ${n} 次：${depth}。`});
+ if(vv==='valid'){const L1=v.cs[0].lo;
+  qs.push({p:'入場點應該係？',o:shuf(Math.random,[{t:`放量突破 Pivot（約 ${f(v.entry)}）`,ok:true},{t:`喺最後收縮低位（約 ${f(last.lo)}）預先買入`,ok:false},{t:`突破後再升 10% 確認先追（約 ${f(v.entry*1.1)}）`,ok:false},{t:`等跌穿 50MA（約 ${f(v.m50[e])}）先買`,ok:false}]),ex:'J Law 技巧三：正確買入點＝放量突破 Tight Area 嘅當下。距突破點超過 2–3% 就唔追。'});
+  qs.push({p:'止蝕放邊？',o:shuf(Math.random,[{t:`最後收縮低位下方（約 ${f(v.stop)}，-${risk.toFixed(1)}%）`,ok:true},{t:`第一次收縮低位（約 ${f(L1)}，-${((v.entry-L1)/v.entry*100).toFixed(1)}%）`,ok:false},{t:`入場價下 0.5%（約 ${f(v.entry*.995)}）`,ok:false},{t:'唔使止蝕，VCP 好穩陣',ok:false}]),ex:`最後收縮細，止蝕可以好窄（約 ${risk.toFixed(1)}%）；第一次收縮低位太遠，風險過大；0.5% 太貼會被正常波動掃走。`})}
+ else qs.push({p:'應該點做？',o:shuf(Math.random,[{t:'唔入場，放觀察名單，等條件改善',ok:true},{t:'一突破就照樣買入',ok:false},{t:'喺低位預先買入，跌再攤平',ok:false},{t:'用雙倍注碼，因為形態似 VCP',ok:false}]),ex:'唔符合三個技巧就唔係有效 VCP——冇優勢唔出手。'});
+ return qs}
+function startVCP(){if(!S)load();SES={mode:'vcp',n:0,total:5,res:[],max:[]};nextVCP()}
+function pickVariant(){if(Math.random()<.45)return'valid';const t=now();let best='down',bs=-1e9;for(const k of['down','wide','loose']){const c=S.cards['V:'+k];let sc=Math.random()*30;if(!c||!c.seen)sc+=40;else if(c.due<=t)sc+=80;if(sc>bs){bs=sc;best=k}}return best}
+function nextVCP(){if(SES.n>=SES.total)return vcpSummary();const v=genVCPok(rs(),pickVariant()),qs=buildVCPQs(v);CUR={v,qs};
+ view(`<div class="card">${back}<div class="tags"><span class="tag">📈 VCP ${SES.n+1}/${SES.total}</span><span class="tag sim">模擬教學圖</span></div>
+ <p><b>市場</b>：${simName()}（模擬股票）　<b>時間框架</b>：日線　橙＝50MA、紫＝200MA</p><div class="cvwrap"><canvas id="cv"></canvas></div>
+ <p class="small">留意：①趨勢（價、50MA、200MA）②每次收縮幅度 ③最後收縮嘅波幅同成交量。</p>
+ ${qs.map((q,i)=>`<div class="q"><b>${i+1}.</b> ${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}</div>`).join('')}
+ <p id="msg" class="bad"></p><button id="sub">提交批改</button></div>`);
+ drawVCP($('cv'),v,false);
+ on('sub',()=>{const ans=qs.map((q,i)=>{const r=document.querySelector(`input[name=q${i}]:checked`);return r?+r.value:-1});if(ans.includes(-1)){$('msg').textContent='仲有題目未答（第 '+(ans.indexOf(-1)+1)+' 題）。';return}gradeVCP(ans)})}
+function gradeVCP(ans){const{v,qs}=CUR;let tot=0;const rows=qs.map((q,i)=>{const ok=q.o[ans[i]].ok;tot+=ok?1:0;return{q,ok,u:q.o[ans[i]].t,c:q.o.find(o=>o.ok).t}});
+ const ok0=rows[0].ok;review('V:'+v.variant,!ok0?1:tot===qs.length?5:3);S.vcpH.push(ok0?1:0);if(S.vcpH.length>200)S.vcpH.shift();bump(S.lstat,1,ok0);tick();save();SES.res.push(tot);SES.max.push(qs.length);
+ view(`<div class="card"><div class="tags"><span class="tag">📈 VCP ${SES.n+1}/${SES.total}</span><span class="tag sim">模擬教學圖</span></div><h1>得分 ${tot}/${qs.length}　${VCPV[v.variant]}</h1>
+ <div class="cvwrap"><canvas id="cv"></canvas></div><p class="small">虛線＝每次收縮（綠字 &lt;10%、紅字 ≥10%）；綠虛線＝Pivot 入場；紅虛線＝止蝕。</p>
+ ${rows.map((r,i)=>`<div class="${r.ok?'okbox':'badbox'}"><b>${i+1}. ${r.q.p}</b> ${r.ok?'✔':'✘'}<br>${r.ok?'':`你揀：${r.u}<br>正解：<b>${r.c}</b><br>`}<span class="small">${r.q.ex}</span></div>`).join('')}
+ <p class="small">📘 J Law：有效 VCP 勝率約 45–50%，靠嚴格止蝕（平均蝕 4–5%）同賺多蝕少取勝。教學用途，非投資建議。</p>
+ <button id="nx">${SES.n<SES.total-1?'下一題':'完成本輪'}</button></div>`);
+ drawVCP($('cv'),v,true);on('nx',()=>{SES.n++;nextVCP()})}
+function vcpSummary(){const t=SES.res.reduce((a,b)=>a+b,0),m=SES.max.reduce((a,b)=>a+b,0);
+ view(`<div class="card"><h1>📈 VCP 完成：${t}/${m}</h1><p>各題：${SES.res.map((r,i)=>r+'/'+SES.max[i]).join('　')}</p>
+ <button id="again">再來一輪</button><button class="alt" id="l1">📘 溫返 VCP 課</button><button class="alt" id="h">返回主頁</button></div>`);on('again',startVCP);on('l1',()=>jlDetail(1));on('h',home)}
+
 /* ================= 啟動 ================= */
 if(typeof document!=='undefined'&&document.getElementById('app'))home();
-if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS,diffTip,review,chooseLevel,expect,mastery,_setS:s=>{S=s}};
-</script></body></html>
+if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS,diffTip,review,chooseLevel,expect,mastery,genVCP,genVCPok,vcpSpec,DRILLS,QB,JL,_setS:s=>{S=s}};
+</script>
+</body></html>
