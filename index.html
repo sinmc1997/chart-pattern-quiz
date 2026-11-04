@@ -249,7 +249,9 @@ function load(){loadProfiles();let s=null;try{s=JSON.parse(LS.get(skey()))}catch
  if(!s.v3){[12,13].forEach(k=>{if(s.jl)delete s.jl[k];if(s.lstat)delete s.lstat[k];if(s.cards)delete s.cards['J:'+k]});if(s.cards)Object.keys(s.cards).forEach(k=>{if(/^Q:[kf]\d/.test(k)||/^S:(size|exit|stop|screen)$/.test(k))delete s.cards[k]});s.v3=true}
  const f=fresh();for(const k in f)if(s[k]===undefined)s[k]=f[k];for(const k in f.settings)if(s.settings[k]===undefined)s.settings[k]=f.settings[k];
  S=s;applyTheme()}
-const save=()=>{LS.set(skey(),JSON.stringify(S));const p=curP();if(p){p.last=now();saveProfiles()}};
+const STORE_OK=(()=>{try{localStorage.setItem('__pmc_t','1');localStorage.removeItem('__pmc_t');return true}catch(e){return false}})();
+function dl(obj,name){const b=new Blob([JSON.stringify(obj)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+const save=()=>{S.savedAt=now();LS.set(skey(),JSON.stringify(S));const p=curP();if(p){p.last=now();saveProfiles()}};
 function applyTheme(){if(typeof document==='undefined')return;const t=S.settings.theme;if(t==='auto')document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme',t)}
 
 /* ================= 學習引擎 ================= */
@@ -340,7 +342,7 @@ function home(){loadProfiles();if(!PROF.cur||!curP())return profilePicker();if(!
  const MODES=[['smart','🎯','智能練習',`間隔重複＋自適應難度＋交錯練習，每輪 ${S.settings.roundLen} 題`],['learn','📚','學習模式','示範例題、口訣、示意圖，之後主動回憶'],
   ['flash','⚡','快閃辨識','圖只顯示幾秒，練第一眼直覺'],['discrim','⚖️','對比辨別','兩幅相似形態，揀出指定嗰幅'],['draw','✏️','畫線練習','自己畫阻力／支持線，再對答案'],
   ['mist','📕',`錯題本（${S.mistakes.length}${mDue?'，'+mDue+' 到期':''}）`,'同一幅圖隔日重做，直到做啱'],['stats','📊','統計與設定','掌握度、混淆矩陣、信心校準、匯出']];
- view(`<div class="card"><div class="tags" style="justify-content:space-between"><span class="tag hl" style="font-size:14px">${me.emo} ${esc(me.name)}</span><button class="alt sm" id="sw">👥 切換學員</button></div><h1>📈 形態訓練營</h1><div class="small">三角形・旗形・楔形・VCP＋J Law 交易系統｜全部為模擬教學圖，只作學習，非投資建議。</div>
+ view(`<div class="card"><div class="tags" style="justify-content:space-between"><span class="tag hl" style="font-size:14px">${me.emo} ${esc(me.name)}</span><button class="alt sm" id="sw">👥 切換學員</button></div><h1>📈 形態訓練營</h1><div class="small" style="margin-bottom:4px">${STORE_OK?'💾 每答一題自動儲存喺呢部機'+(S.savedAt?'（上次 '+new Date(S.savedAt).toLocaleTimeString('zh-HK',{hour:'2-digit',minute:'2-digit'})+'）':'')+((!PROF.lastBackup||now()-PROF.lastBackup>7*DAY)&&S.hist.length+S.flash.length>20?'｜建議去「切換學員」頁備份一次':''):'<span class="bad">⚠️ 呢個瀏覽器儲存唔到紀錄（私密模式或預覽頁），關咗就會冇——請用 GitHub Pages 網址開</span>'}</div><div class="small">三角形・旗形・楔形・VCP＋J Law 交易系統｜全部為模擬教學圖，只作學習，非投資建議。</div>
  <div class="stats4"><div><b>${dn}/${g}</b><span>今日題數</span></div><div><b>${streakNow()} 🔥</b><span>連續日數</span></div><div><b>${dueCount()}</b><span>到期複習</span></div><div><b>${avgMastery()}%</b><span>平均掌握</span></div></div>
  <div class="bar"><i style="width:${Math.min(100,dn/g*100)}%"></i></div></div>
  <div class="card"><h3 style="margin-top:0">🤖 智能建議</h3>${R.slice(0,3).map((r,i)=>`<button class="rec ${i?'':'main'}" id="r${i}">${r.ic} ${r.t}<span>${r.d}</span></button>`).join('')}</div>
@@ -595,7 +597,7 @@ function statsView(){const H=S.hist.slice(-30),cs=S.calib.sure,cg=S.calib.guess,
  <button class="alt" id="ex">⬇️ 匯出進度</button><label class="alt" style="display:inline-block;background:var(--alt);color:#fff;border-radius:8px;padding:10px 16px;cursor:pointer">⬆️ 匯入進度<input type="file" id="im" accept="application/json" hidden></label>
  <button class="alt" id="rs" style="background:var(--bad)">清除呢位學員嘅紀錄</button><p id="imm" class="small"></p></div>`);
  on('sv',()=>{st.premortem=$('s_pm').checked;st.goal=+$('s_goal').value;st.roundLen=+$('s_rl').value;st.flashAuto=$('s_fa').checked;st.flashMs=+$('s_fm').value;st.theme=$('s_th').value;save();applyTheme();$('svm').textContent=' ✔ 已儲存'});
- on('ex',()=>{const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='pattern-progress-'+(curP()?curP().name:'')+'-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()});
+ on('ex',()=>dl(S,'pattern-progress-'+(curP()?curP().name:'')+'-'+today()+'.json'));
  $('im').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(!s||s.ver!==2||!s.cards)throw 0;LS.set(skey(),JSON.stringify(s));S=null;load();statsView();$('imm').textContent='✔ 匯入成功'}catch(err){$('imm').textContent='✘ 檔案格式唔啱'}};r.readAsText(f)};
  on('rs',()=>{const b=$('rs');if(!b.dataset.c){b.dataset.c=1;b.textContent='再撳一次確認清除（無法復原）';return}LS.del(skey());S=fresh();save();home()})}
 
@@ -1045,47 +1047,65 @@ function plot(cv,all,s0,end,slots,o){const cs=getComputedStyle(document.document
 
 /* ================= M.E.T.A. 圖表訓練 ================= */
 const MEDGE=[['flip','前浪頂阻力變支持（Flip）'],['ma20','20MA 支持'],['ma50','50MA 支持'],['utl','上升趨勢線（UTL）支持'],['vol','低量拉回（低過 50 日平均）'],['dtl','啱啱突破回調嘅小型 DTL'],['rsi','RSI 超賣（低過 30）']];
-function genMETA(seed){const R=mb(seed),rnd=(a,b)=>a+(b-a)*R(),bars=[],vb=rnd(.8,1.5)*1e6;let p=rnd(30,150);
+function genMETA(seed,loose){const R=mb(seed),rnd=(a,b)=>a+(b-a)*R(),bars=[],vb=rnd(.8,1.5)*1e6;let p=rnd(30,150);
  const add=(c,vm,vol)=>{const o=bars.length?bars[bars.length-1].c:c,a=c*(vol||.011);bars.push({o,c,h:Math.max(o,c)+R()*a*.7,l:Math.min(o,c)-R()*a*.7,v:vb*vm*(.75+R()*.5)})};
  for(let i=0;i<80;i++){p*=Math.exp(.0035+.007*Math.sin(i/4.2)+(R()-.5)*.016);add(p,1)}
  const dd=rnd(.06,.1),B=p/(1-dd/2-.92*dd/2),mid=B*(1-dd/2),amp=B*dd/2*.92,b0=bars.length;
- for(let i=1;i<=24;i++)add(mid+amp*Math.sin(2*Math.PI*i/12-Math.PI/2)+(R()-.5)*B*.006,.85);
- const bEnd=bars.length-1;add(B*1.035,2.6);const top=B*rnd(1.12,1.2);for(let i=1;i<=9;i++){const t=i/9;add(B*1.035+(top-B*1.035)*t+(R()-.5)*B*.006,1.2)}
- const ps=bars.length-1,flipW=R()<.55,lowV=R()<.6,dtlW=R()<.55,T=flipW?B*(1+rnd(-.004,.018)):B*(1+rnd(.055,.085)),n=ri(6,9),pc=bars[ps].c;
- for(let i=1;i<=n;i++){const t=i/n;add(pc-(pc-T)*(t*t*(3-2*t))+(R()-.5)*B*.004,lowV?.55:1.45,.009)}
- if(dtlW)add(bars[bars.length-1].c*(1+rnd(.022,.032)),lowV?1.1:1.4,.009);
+ const bL=ri(14,36),nR=ri(6,16);for(let i=1;i<=bL;i++)add(mid+amp*Math.sin(2*Math.PI*i/12-Math.PI/2)+(R()-.5)*B*.006,.85);
+ const bEnd=bars.length-1,s0=Math.max(0,b0-30);add(B*1.035,2.6);const top=B*rnd(1.1,1.24);for(let i=1;i<=nR;i++){const t=i/nR;add(B*1.035+(top-B*1.035)*t+(R()-.5)*B*.006,1.2)}
+ const ps=bars.length-1,Bv=Math.max(...bars.slice(b0,bEnd+1).map(x=>x.h));
+ // UTL：兩個睇得到嘅 swing low，中間冇 K 線穿過
+ const sw=[];for(let i=s0+2;i<=bEnd;i++){let ok=true;for(let k=1;k<=3;k++)if(bars[i].l>bars[i-k].l||bars[i].l>bars[i+k].l)ok=false;if(ok)sw.push(i)}
+ let utl=null;for(const i2 of sw.filter(i=>i>=b0).reverse()){for(const i1 of sw.filter(i=>i<=i2-12&&bars[i].l<bars[i2].l*.99).reverse()){const l1=bars[i1].l,l2=bars[i2].l,f=i=>l1+(l2-l1)*(i-i1)/(i2-i1);let ok=true;for(let i=i1;i<=ps;i++)if(bars[i].l<f(i)*.997){ok=false;break}if(ok){utl={i1,i2,l1,l2,f};break}}if(utl)break}
+ // 揀回調終點：回到 UTL／前浪頂／半路
+ const lowV=R()<.6,dtlW=R()<.55,n=ri(6,9),eP=ps+n,pc=bars[ps].c,ch=R();let T;
+ const maT=w=>{let S0=0;for(let i=ps-(w-n)+1;i<=ps;i++)S0+=bars[i].c;return(S0+pc*(n-1)/2)/(w-(n+1)/2)};
+ if(utl&&ch<.25)T=utl.f(eP)*(1+rnd(-.003,.008));else if(ch<.5)T=Bv*(1+rnd(-.004,.012));else if(ch<.68)T=maT(50)*(1+rnd(-.003,.006));else if(ch<.86)T=maT(20)*(1+rnd(-.003,.006));else T=Bv*(1+rnd(.05,.085));
+ if(T>pc*.96||T<Bv*.9)T=Bv*(1+rnd(-.004,.012));
+ for(let i=1;i<=n;i++)add(pc-(pc-T)*i/n+(i<n?(R()-.5)*B*.004:0),lowV?.55:1.45,.008);
+ if(dtlW)add(bars[bars.length-1].c*(1+rnd(.035,.048)),lowV?1.1:1.4,.008);
  const e=bars.length-1,cl=bars.map(b=>b.c),m20=sma(cl,20),m50=sma(cl,50),vA=sma(bars.map(b=>b.v),50);
- const sw=[];for(let i=25;i<=bEnd;i++){let ok=true;for(let k=1;k<=3;k++)if(bars[i].l>bars[i-k].l||(bars[i+k]&&bars[i].l>bars[i+k].l))ok=false;if(ok)sw.push(i)}
- let utl=null;const i2=sw.filter(i=>i>=b0).pop();if(i2!=null){const c1=sw.filter(i=>i<=i2-15&&bars[i].l<bars[i2].l*.97);if(c1.length){const i1=c1[c1.length-1],l1=bars[i1].l,l2=bars[i2].l;utl={i1,i2,l1,l2,f:i=>l1+(l2-l1)*(i-i1)/(i2-i1)}}}
- const Lmin=Math.min(...bars.slice(e-3).map(b=>b.l)),Ce=bars[e].c,near=x=>x!=null&&Lmin<=x*1.02&&Ce>=x*.975;
- let dtl=null;{const a=ps,b2=dtlW?e-1:e-1,h1=bars[a].h,h2=bars[b2].h;if(b2>a)dtl={a,b:b2,f:i=>h1+(h2-h1)*(i-a)/(b2-a)}}
- const pv=bars.slice(ps+1,ps+1+n).reduce((s,b)=>s+b.v,0)/n;
- const has={flip:near(B),ma20:near(m20[e]),ma50:near(m50[e]),utl:utl?near(utl.f(e)):false,vol:pv<vA[e]*.85,dtl:!!(dtl&&Ce>dtl.f(e)&&Ce>bars[e].o),rsi:false};
- const c=Object.values(has).filter(Boolean).length,lv={flip:B,ma20:m20[e],ma50:m50[e],utl:utl?utl.f(e):null};
+ const Lmin=Math.min(...bars.slice(e-3).map(x=>x.l)),Ce=bars[e].c;
+ // 三態判斷：1＝清楚有、0＝清楚冇、-1＝模糊（重新出題）
+ const tri=x=>{if(x==null)return 0;if(Lmin<=x*1.012&&Ce>=x*.988)return 1;if(Lmin>=x*1.03||Ce<=x*.97)return 0;return -1};
+ // DTL：由回調最高位連去斜率最大嘅較低高位，中間高位全部喺線下
+ let dtl=null,dtOk=true;{let a=ps;for(let i=ps+1;i<=ps+2;i++)if(bars[i].h>bars[a].h)a=i;let best=-1e9,j=-1;for(let i=a+2;i<=e-1;i++){const sl=(bars[i].h-bars[a].h)/(i-a);if(sl>best){best=sl;j=i}}
+  if(j>0){const h1=bars[a].h;dtl={a,b:j,f:i=>h1+best*(i-a)};for(let i=a+1;i<e;i++)if(bars[i].h>dtl.f(i)*1.001)dtOk=false}}
+ const dtT=!dtl||!dtOk?-1:(Ce>dtl.f(e)*1.006&&Ce>bars[e].o)?1:Ce<dtl.f(e)*.995?0:-1;
+ const pv=bars.slice(ps+1,ps+1+n).reduce((s,b)=>s+b.v,0)/n,vr=pv/vA[e],voT=vr<.78?1:vr>.92?0:-1;
+ const T3={flip:tri(Bv),ma20:tri(m20[e]),ma50:tri(m50[e]),utl:utl?tri(utl.f(e)):0,vol:voT,dtl:dtT};
+ if(!loose&&Object.values(T3).includes(-1))return null;
+ const has={flip:T3.flip===1,ma20:T3.ma20===1,ma50:T3.ma50===1,utl:T3.utl===1,vol:T3.vol===1,dtl:T3.dtl===1,rsi:false};
+ const c=Object.values(has).filter(Boolean).length,lv={flip:Bv,ma20:m20[e],ma50:m50[e],utl:utl?utl.f(e):null};
  const zone=Object.keys(lv).filter(k=>has[k]).map(k=>lv[k]),zl=Math.min(Lmin,...(zone.length?zone:[Lmin])),stop=zl*.985,fut=[];let lc=Ce;
  const pf=(c2,vm)=>{fut.push({o:lc,c:c2,h:Math.max(lc,c2)*(1+R()*.006),l:Math.min(lc,c2)*(1-R()*.006),v:vb*vm*(.8+R()*.4)});lc=c2};
- if(c>=3){const t2=top*rnd(1.03,1.1);for(let k=1;k<=10;k++)pf(lc+(t2-lc)/(11-k)+(R()-.5)*B*.008,1.3)}else{const t2=Math.min(B,m50[e])*.9;for(let k=1;k<=10;k++)pf(lc+(t2-lc)/(11-k)+(R()-.5)*B*.008,1.4)}
+ if(c>=3){const t2=top*rnd(1.03,1.1);for(let k=1;k<=10;k++)pf(lc+(t2-lc)/(11-k)+(R()-.5)*B*.008,1.3)}else{const t2=Math.min(Bv,m50[e],Lmin)*.92;for(let k=1;k<=10;k++)pf(lc+(t2-lc)/(11-k)+(R()-.5)*B*.008,1.4)}
  const all=bars.concat(fut),M20=sma(all.map(b=>b.c),20),M50=sma(all.map(b=>b.c),50),VA=sma(all.map(b=>b.v),50);
- return{bars,fut,all,e,B,top,has,c,utl,dtl,lv,stop,entry:Ce,zl,m20:M20,m50:M50,vA:VA,s0:Math.max(0,b0-30),ps,n,Lmin}}
-function drawMETA(cv,m,reveal){const end=reveal?m.all.length:m.bars.length,P=plot(cv,m.all,m.s0,end,m.all.length-m.s0,{mas:[{a:m.m20,c:getComputedStyle(document.documentElement).getPropertyValue('--res').trim()||'#e65100',t:'20MA'},{a:m.m50,c:getComputedStyle(document.documentElement).getPropertyValue('--user').trim()||'#8e24aa',t:'50MA'}],vA:m.vA,nV:m.bars.length,div:reveal,ext:reveal?[m.stop]:[]});
+ return{bars,fut,all,e,B:Bv,top,has,c,utl,dtl,lv,stop,entry:Ce,zl,m20:M20,m50:M50,vA:VA,s0,ps,n,Lmin,vr,b0,bEnd}}
+function genMETAok(seed){for(let a=0;a<80;a++){const m=genMETA(seed+a*7919);if(m)return m}return genMETA(seed,true)}
+function drawMETA(cv,m,reveal){const end=reveal?m.all.length:m.bars.length,P=plot(cv,m.all,m.s0,end,m.all.length-m.s0,{mas:[{a:m.m20,c:getComputedStyle(document.documentElement).getPropertyValue('--res').trim()||'#e65100',t:'20MA'},{a:m.m50,c:getComputedStyle(document.documentElement).getPropertyValue('--user').trim()||'#8e24aa',t:'50MA'}],vA:m.vA,nV:m.bars.length,div:reveal,ext:reveal&&m.c>=3?[m.stop]:[]});
  if(!reveal)return;const{g,X,Y,C,W,Rm}=P,lab=(t,x,y,c)=>{g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t,x,y)};
  g.fillStyle=m.has.flip?'rgba(10,125,50,.13)':'rgba(120,120,120,.10)';g.fillRect(X(m.s0+20),Y(m.B*1.012),W-Rm-X(m.s0+20),Y(m.B*.988)-Y(m.B*1.012));lab((m.has.flip?'✔ ':'✘ ')+'前浪頂區',X(m.s0+22),Y(m.B*1.012)-8,m.has.flip?C.ok:C.ax);
  if(m.utl){const u=m.utl;g.strokeStyle=C.sup;g.lineWidth=2;g.beginPath();g.moveTo(X(Math.max(m.s0,u.i1)),Y(u.f(Math.max(m.s0,u.i1))));g.lineTo(X(m.e+4),Y(u.f(m.e+4)));g.stroke();g.lineWidth=1;lab((m.has.utl?'✔ ':'✘ ')+'UTL',X(m.e+4)+2,Y(u.f(m.e+4))+10,m.has.utl?C.ok:C.ax)}
  if(m.dtl){const d=m.dtl;g.strokeStyle=C.res;g.setLineDash([5,3]);g.lineWidth=1.6;g.beginPath();g.moveTo(X(d.a),Y(d.f(d.a)));g.lineTo(X(m.e+2),Y(d.f(m.e+2)));g.stroke();g.setLineDash([]);g.lineWidth=1;lab((m.has.dtl?'✔ ':'✘ ')+'DTL',X(m.e+2)+2,Y(d.f(m.e+2))-10,m.has.dtl?C.ok:C.ax)}
- g.strokeStyle=C.bad;g.setLineDash([5,4]);g.lineWidth=1.6;g.beginPath();g.moveTo(X(m.e-6),Y(m.stop));g.lineTo(W-Rm,Y(m.stop));g.stroke();g.setLineDash([]);g.lineWidth=1;lab('止蝕 '+m.stop.toFixed(2),W-Rm+4,Y(m.stop)+8,C.bad)}
+ if(m.c>=3){g.strokeStyle=C.bad;g.setLineDash([5,4]);g.lineWidth=1.6;g.beginPath();g.moveTo(X(m.e-6),Y(m.stop));g.lineTo(W-Rm,Y(m.stop));g.stroke();g.setLineDash([]);g.lineWidth=1;lab('止蝕 '+m.stop.toFixed(2),W-Rm+4,Y(m.stop)+8,C.bad)}}
+function metaWhy(m,k){const f=x=>'$'+x.toFixed(2),d=x=>{const v=(m.Lmin-x)/x*100;return(v>=0?'+':'')+v.toFixed(1)+'%'},e=m.e,C=m.bars[e].c;
+ if(k==='flip')return`前浪頂 ${f(m.B)}，最低位距離 ${d(m.B)}`;if(k==='ma20')return`20MA ${f(m.m20[e])}，最低位距離 ${d(m.m20[e])}`;if(k==='ma50')return`50MA ${f(m.m50[e])}，最低位距離 ${d(m.m50[e])}`;
+ if(k==='utl')return m.utl?`UTL 延伸到而家約 ${f(m.utl.f(e))}，最低位距離 ${d(m.utl.f(e))}`:'圖中搵唔到兩個 swing low 連成而唔穿過 K 線嘅 UTL';
+ if(k==='vol')return`回調平均成交量＝50 日平均 × ${m.vr.toFixed(2)}`;if(k==='dtl')return m.dtl?`收市 ${f(C)}，DTL 喺而家約 ${f(m.dtl.f(e))}`:'冇回調 DTL';return'J Law 唔用 RSI 等二手指標，永遠唔計'}
 function buildMETAQs(m){const f=x=>'$'+x.toFixed(2),c=m.c,qs=[];
  qs.push({multi:true,p:'而家呢個位置（最右邊 K 線）有邊啲優勢？（可揀多個）',o:MEDGE.map(([k,t])=>({k,t,ok:m.has[k]})),
-  ex:MEDGE.map(([k,t])=>`${m.has[k]?'✔':'✘'} ${t}`).join('<br>')+'<br><span class="small">RSI 永遠唔計——J Law 唔用二手指標。前浪頂約 '+f(m.B)+'；20MA '+f(m.m20[m.e])+'；50MA '+f(m.m50[m.e])+(m.utl?'；UTL 約 '+f(m.utl.f(m.e)):'；搵唔到合理 UTL')+'。</span>'});
+  ex:MEDGE.map(([k,t])=>`${m.has[k]?'✔':'✘'} ${t}<span class="small">　${metaWhy(m,k)}</span>`).join('<br>')+'<br><span class="small">判斷標準：「有支持」＝最近 4 根 K 嘅最低位去到該水平 ±1.2% 內，而收市仲企喺水平附近；距離 3% 以上或收市跌穿 3% 就唔算。</span>'});
  const F=n=>`${n} 個｜${META_DEC(n)}`;
  qs.push({p:'總共有幾多個優勢重疊？應該點做？',o:shuf(Math.random,uniqOpts(F(c),[F(Math.min(6,c+1)),F(Math.max(0,c-1)),F(Math.min(6,c+2)),F(Math.max(0,c-2))])),ex:`共 ${c} 個優勢。J Law：多個獨立理由喺同一位置重疊（M.E.T.A.）先出手；單一理由入場＝亂來。`});
  if(c>=3)qs.push({p:'如果喺呢度入場（約 '+f(m.entry)+'），止蝕放邊？',o:shuf(Math.random,[{t:`支持區下方（約 ${f(m.stop)}，-${((m.entry-m.stop)/m.entry*100).toFixed(1)}%）`,ok:true},{t:`入場價下 0.5%（約 ${f(m.entry*.995)}）`,ok:false},{t:`基底最低位（約 ${f(Math.min(...m.bars.slice(m.s0+20,m.ps-10).map(b=>b.l)))}）`,ok:false},{t:'唔使止蝕，優勢咁多',ok:false}]),ex:'J Law：支持阻力係區間，止蝕放成個優勢區下方；太貼會被 Shakeout 洗走，放太遠就風險過大。'});
  else qs.push({p:'優勢唔夠，下一步點做？',o:shuf(Math.random,[{t:'放觀察名單，等跌到更多優勢重疊（例如前浪頂＋均線）或者突破 DTL',ok:true},{t:'照入，靠感覺',ok:false},{t:'加槓桿博反彈',ok:false},{t:'因為 RSI 超賣所以入',ok:false}]),ex:'冇 M.E.T.A. 就等；錯過都唔緊要，市場成日有下一個機會。'});
  return qs}
 function startMETA(){if(!S)load();SES={mode:'meta',n:0,total:5,res:[],max:[]};nextMETA()}
-function nextMETA(){if(SES.n>=SES.total)return chartSummary('🎯 M.E.T.A. 圖表',startMETA,5);const m=genMETA(rs()),qs=buildMETAQs(m);CUR={m,qs};
+function nextMETA(){if(SES.n>=SES.total)return chartSummary('🎯 M.E.T.A. 圖表',startMETA,5);const m=genMETAok(rs()),qs=buildMETAQs(m);CUR={m,qs};
  view(`<div class="card">${back}<div class="tags"><span class="tag">🎯 M.E.T.A. ${SES.n+1}/${SES.total}</span><span class="tag sim">模擬教學圖</span></div>
  <p><b>市場</b>：${simName()}（模擬股票）日線　第二階段強勢股，突破後回調緊。橙＝20MA、紫＝50MA。</p><div class="cvwrap"><canvas id="cv"></canvas></div>
- <p class="small">提示：自己搵前浪頂、兩個 swing low（UTL）、回調嘅下降線（DTL），再睇成交量同 50 日平均（灰線）。</p>
+ <p class="small">提示：自己搵前浪頂、兩個 swing low 連成嘅 UTL（唔可以穿過 K 線）、回調高位連成嘅 DTL，再睇成交量同 50 日平均（灰線）。「有支持」＝最近幾根 K 嘅低位去到該水平 ±1% 左右，而收市企返上面。</p>
  ${qs.map((q,i)=>`<div class="q"><b>${i+1}.</b> ${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="${q.multi?'checkbox':'radio'}" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}</div>`).join('')}
  <p id="msg" class="bad"></p><button id="sub">提交批改</button></div>`);
  drawMETA($('cv'),m,false);
@@ -1144,11 +1164,18 @@ function profilePicker(){loadProfiles();
   <div style="font-size:38px">${p.emo}</div>${PEDIT===p.id?`<input id="pe_${p.id}" value="${esc(p.name)}" maxlength="16" style="font-size:16px;width:100%"><button class="sm" data-ok="${p.id}">✔ 儲存</button>`:`<b style="font-size:17px">${esc(p.name)}</b>`}
   <div class="small">今日 ${st.dn} 題・連續 ${st.sk} 日・掌握 ${st.am}%・讀咗 ${st.read} 課</div><div class="small">${p.last?'上次：'+new Date(p.last).toLocaleDateString('zh-HK'):'未開始'}</div>
   <div style="margin-top:6px"><button class="sm" data-go="${p.id}">開始 ▶</button><button class="alt sm" data-ed="${p.id}">✏️</button><button class="alt sm" data-del="${p.id}" style="${PDEL===p.id?'background:var(--bad)':''}">${PDEL===p.id?'再撳確認刪除':'🗑'}</button></div></div>`}).join('')}</div>
+ <div class="card"><h3 style="margin-top:0">💾 備份同還原</h3><p class="small">${STORE_OK?'紀錄已自動儲存喺呢部機。定期備份可以防止清除瀏覽器資料後遺失，亦可以搬去另一部機（喺新機撳「還原備份」）。':'<span class="bad">⚠️ 呢個瀏覽器儲存唔到紀錄（私密模式或預覽頁）。</span>'}${PROF.lastBackup?' 上次備份：'+new Date(PROF.lastBackup).toLocaleDateString('zh-HK'):''}</p>
+ <button class="alt" id="bk">⬇️ 備份全部學員</button><label class="alt" style="display:inline-block;background:var(--alt);color:#fff;border-radius:8px;padding:10px 16px;cursor:pointer;margin:4px 0">⬆️ 還原備份<input type="file" id="rsf" accept="application/json" hidden></label><p id="bkm" class="small"></p></div>
  <div class="card"><h3 style="margin-top:0">➕ 新增學員</h3><input id="np" placeholder="名字" maxlength="16" style="font-size:16px;padding:6px;width:min(260px,100%)">
  <div id="emos" style="margin:8px 0">${EMO.map((e,i)=>`<button class="alt sm emo${i===0?' sel':''}" data-e="${e}" style="font-size:20px">${e}</button>`).join('')}</div><button id="add">建立</button><p id="pm" class="bad"></p></div>`);
  let emo=EMO[PROF.list.length%EMO.length];document.querySelectorAll('.emo').forEach(b=>{b.classList.toggle('sel',b.dataset.e===emo);b.onclick=()=>{emo=b.dataset.e;document.querySelectorAll('.emo').forEach(x=>x.classList.toggle('sel',x===b))}});
  on('add',()=>{const nm=$('np').value.trim();if(!nm){$('pm').textContent='請輸入名字';return}const id='p'+now().toString(36)+Math.floor(Math.random()*1e3);PROF.list.push({id,name:nm,emo,t:now()});saveProfiles();selectProfile(id)});
  $('np').onkeydown=e=>{if(e.key==='Enter')$('add').click()};
+ on('bk',()=>{const st={};PROF.list.forEach(p=>{st[p.id]=readState(p.id)});dl({type:'pmc-backup',ver:1,t:now(),profiles:PROF.list,states:st},'pattern-backup-'+today()+'.json');PROF.lastBackup=now();saveProfiles();$('bkm').textContent='✔ 已下載備份檔'});
+ $('rsf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+  if(d&&d.type==='pmc-backup'&&Array.isArray(d.profiles)){d.profiles.forEach(p=>{const i=PROF.list.findIndex(x=>x.id===p.id);if(i>=0)PROF.list[i]=p;else PROF.list.push(p);if(d.states&&d.states[p.id])LS.set(skey(p.id),JSON.stringify(d.states[p.id]))})}
+  else if(d&&d.ver===2&&d.cards){const id='p'+now().toString(36);PROF.list.push({id,name:'匯入學員',emo:'🦉',t:now()});LS.set(skey(id),r.result)}else throw 0;
+  saveProfiles();if(PROF.cur)S=null;profilePicker();$('bkm').textContent='✔ 還原成功'}catch(err){$('bkm').textContent='✘ 檔案格式唔啱'}};r.readAsText(f)};
  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=e=>{e.stopPropagation();selectProfile(b.dataset.go)});
  document.querySelectorAll('.pcard').forEach(b=>b.onclick=e=>{if(e.target.closest('button,input'))return;selectProfile(b.dataset.id)});
  document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=e=>{e.stopPropagation();PEDIT=b.dataset.ed;PDEL=null;profilePicker()});
@@ -1159,6 +1186,6 @@ function selectProfile(id){PROF.cur=id;const p=PROF.list.find(x=>x.id===id);if(p
 
 /* ================= 啟動 ================= */
 if(typeof document!=='undefined'&&document.getElementById('app'))profilePicker();
-if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS,diffTip,review,chooseLevel,expect,mastery,genVCP,genVCPok,vcpSpec,genMETA,genTrend,genTrendOk,DRILLS,QB,JL,_setS:s=>{S=s}};
+if(typeof module!=='undefined')module.exports={genScenario,buildQs,drawChart,PATTERNS,diffTip,review,chooseLevel,expect,mastery,genVCP,genVCPok,vcpSpec,genMETA,genMETAok,genTrend,genTrendOk,DRILLS,QB,JL,_setS:s=>{S=s}};
 </script>
 </body></html>
