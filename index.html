@@ -482,23 +482,24 @@ function learnHome(){view(`<div class="card">${back}<h2>📚 學習模式</h2><p
  <div class="lgrid">${PK.map(k=>{const P=PATTERNS[k],c=S.cards['L:'+k];return`<div class="lcard" data-k="${k}">${schem(k)}<b>${P.name}</b> ${S.learned[k]?'✅':''}<div class="small">${P.cat}｜${P.mn}</div><div class="small">掌握 ${mbar(mastery(k))}</div>${c?`<div class="small">知識卡：${fmtDue(c.due)}</div>`:''}</div>`}).join('')}</div>`);
  on('rall',()=>startRecall(PK.slice()));document.querySelectorAll('.lcard').forEach(b=>b.onclick=()=>learnDetail(b.dataset.k))}
 function exNote(sc){const P=sc.P,dir=sc.d>0?'向上':'向下',opp=sc.d>0?'向下':'向上';
- if(sc.fake)return`<div class="badbox"><b>⚠️ 呢個例子係「假${sc.d>0?'突破':'跌破'}」</b>：最後一支K收市${sc.d>0?'升穿':'跌穿'}${brkName(P,sc.d)}，但成交量只有約 ${sc.brkV.toFixed(1)} 倍 20 日均量（未確認），之後收返入形態並${opp}走——所以走勢同偏向相反。<br>形態${biasTxt(P.bias)}呢點冇錯，錯在冇等確認就入場：要量 ≥1.5 倍先算數。撳「高級例子」再睇多幾個，對比真突破。</div>`;
+ if(sc.fake)return`<div class="badbox"><b>⚠️ 呢個例子係「假${sc.d>0?'突破':'跌破'}」</b>：最後一支K收市${sc.d>0?'升穿':'跌穿'}${brkName(P,sc.d)}，但成交量只有約 ${sc.brkV.toFixed(1)} 倍 20 日均量（未確認），之後收返入形態並${opp}走——所以走勢同偏向相反。<br>形態${biasTxt(P.bias)}呢點冇錯，錯在冇等確認就入場：要量 ≥1.5 倍先算數。</div>`;
  if(sc.hard)return`<div class="okbox"><b>✅ 呢個例子係「真${sc.d>0?'突破':'跌破'}」</b>：突破K成交量約 ${sc.brkV.toFixed(1)} 倍 20 日均量，收市企穩線外＝確認，之後${dir}走向目標。</div>`;
  return`<div class="okbox">示範：收市有效${sc.d>0?'突破':'跌破'}${brkName(P,sc.d)}並放量，之後${dir}走${P.bias===0?'（中性形態，今次突破方向係'+dir+'）':''}。</div>`}
-function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const P=PATTERNS[k],sc=genScenario(k,lv,rs());
+function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const P=PATTERNS[k],pickSc=fk=>{let x;for(let i=0;i<50;i++){x=genScenario(k,lv,rs());if(lv<3||x.fake===fk)break}return x},sc=pickSc(false),sc2=lv===3?pickSc(true):null;
  view(`<div class="card">${back} <button class="alt sm" id="lh">← 形態列表</button>
  <div class="tags"><span class="tag">${P.cat}</span><span class="tag">示範例題・${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
  <h2>${P.name}</h2><p class="mn">💡 口訣：${P.mn}</p>
  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"><div style="flex:0 0 160px">${schem(k)}<div class="small">示意圖：橙＝阻力、藍＝支持、箭咀＝偏向</div></div>
  <div style="flex:1 1 260px"><p><b>特徵</b>：${P.feat}</p><p><b>第一性原理</b>：${P.pr}</p><p><b>偏向</b>：${biasTxt(P.bias)}</p></div></div>
- <div class="cvwrap"><canvas id="cv"></canvas></div>${exNote(sc)}
+ ${lv===3?'<h3>① 真'+(P.bias<0?'跌破':'突破')+'：跟口訣行</h3>':''}<div class="cvwrap"><canvas id="cv"></canvas></div>${exNote(sc)}
+ ${sc2?`<h3>② 假${P.bias<0?'跌破':'突破'}：口訣失效嘅情況（同一個形態）</h3><div class="cvwrap"><canvas id="cv2"></canvas></div>${exNote(sc2)}<p class="small">兩幅圖形態一樣，分別只係突破K嘅成交量：口訣講嘅係「偏向」，要放量確認先信。</p>`:''}
  <table><tr><th>入場</th><td>收市價有效突破${P.bias===0?'上軌或下軌（等方向確認）':brkName(P,P.bias)}，並伴隨成交量明顯放大（約 1.5 倍均量或以上）；突破K縮量＝未確認。</td></tr>
  <tr><th>止蝕</th><td>${P.stopTxt||'形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。'}</td></tr><tr><th>目標</th><td>${methOf(P)}。</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
  <div class="jlbox"><b>📘 J Law 重點</b>：${JLP[k]}</div>
  <h3>⚖️ 易混淆形態</h3>${SIMILAR[k].map(b=>diffBox(k,b)).join('')}
- <h3>下一步</h3><button id="ex1" class="alt">🔄 換個例子</button><button id="ex2" class="alt">中級例子</button><button id="ex3" class="alt">高級（真／假突破）例子</button><br>
+ <h3>下一步</h3><button id="ex1" class="alt">🔄 換個例子</button><button id="ex2" class="alt">中級例子</button><button id="ex3" class="alt">高級：真 vs 假突破對比</button><br>
  <button id="rc">🧠 主動回憶呢個形態</button><button id="fq">🎯 即刻做一題</button></div>`);
- drawChart($('cv'),sc,{reveal:true});
+ drawChart($('cv'),sc,{reveal:true});if(sc2)drawChart($('cv2'),sc2,{reveal:true});
  on('lh',learnHome);on('ex1',()=>learnDetail(k,lv));on('ex2',()=>learnDetail(k,2));on('ex3',()=>learnDetail(k,3));on('rc',()=>startRecall([k]));on('fq',()=>startSmart(k))}
 function startRecall(keys){SES={mode:'recall',list:keys,n:0,total:keys.length,res:[]};nextRecall()}
 function nextRecall(){if(SES.n>=SES.total)return recallSummary();const k=SES.list[SES.n],P=PATTERNS[k];
