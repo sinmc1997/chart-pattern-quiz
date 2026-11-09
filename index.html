@@ -309,7 +309,8 @@ function drawChart(cv,sc,o){o=(o&&typeof o==='object')?o:{reveal:!!o};const reve
  if(reveal)[sc.entry,sc.stop,sc.target].forEach(v=>{hi=Math.max(hi,v);lo=Math.min(lo,v)});
  const pad=(hi-lo)*.06;hi+=pad;lo-=pad;const X=i=>L+(i+.5)*sl,Y=v=>top+(hi-v)/(hi-lo)*PH,vm=Math.max(...all.map(b=>b.v));
  g.font='11px sans-serif';g.textBaseline='middle';
- for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.strokeStyle=GR;g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();g.fillStyle=AX;g.fillText(v.toFixed(2),W-Rm+4,y)}
+ const tagY=[];if(reveal){const t=[[sc.entry,'#8e24aa','入場'],[sc.stop,AX,'止蝕'],[sc.target,'#f9a825','目標']].map(a=>({v:a[0],c:a[1],t:a[2],y:Y(a[0])})).sort((a,b)=>a.y-b.y);for(let i=1;i<t.length;i++)if(t[i].y-t[i-1].y<14)t[i].y=t[i-1].y+14;tagY.push(...t)}
+ for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4,y=Y(v);g.strokeStyle=GR;g.beginPath();g.moveTo(L,y);g.lineTo(W-Rm,y);g.stroke();if(tagY.some(a=>Math.abs(a.y-y)<12))continue;g.fillStyle=AX;g.fillText(v.toFixed(2),W-Rm+4,y)}
  all.forEach((b,i)=>{const up=b.c>=b.o,col=up?'#d93025':'#0f9d58',x=X(i),w=sl*.62;g.strokeStyle=g.fillStyle=col;
   g.beginPath();g.moveTo(x,Y(b.h));g.lineTo(x,Y(b.l));g.stroke();g.fillRect(x-w/2,Math.min(Y(b.o),Y(b.c)),w,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));
   const vh=b.v/vm*VH;g.globalAlpha=i>=vis.length?.55:.8;g.fillRect(x-w/2,vt+VH-vh,w,vh);g.globalAlpha=1});
@@ -323,9 +324,9 @@ function drawChart(cv,sc,o){o=(o&&typeof o==='object')?o:{reveal:!!o};const reve
   if(showL){lineSeg(sc.L,SUP,la,M-1);if(reveal)lineSeg(sc.L,SUP,M-1,M+3,1);g.fillStyle=SUP;g.fillText(P.labL||'支持線＝需求',X(p0+la)+4,Y(sc.L(la))+12)}
   (sc.marks||[]).forEach(([i,t])=>{const b=sc.bars[p0+i],below=/底/.test(t)||(P.bias>0&&/肩|頭/.test(t));g.fillStyle=AX;g.font='bold 11px sans-serif';g.fillText(t,X(p0+i)-10,below?Y(b.l)+12:Y(b.h)-10);g.font='11px sans-serif'});
   if(sc.poleH){g.fillStyle=AX;g.fillText('旗桿',X(p0-5),Y(sc.bars[p0-1].c)+(sc.pd>0?-16:16))}}
- if(reveal){const xs=X(p0+sc.idxE);[[sc.entry,'#8e24aa','入場',0],[sc.stop,AX,'止蝕',1],[sc.target,'#f9a825','目標',1]].forEach(([v,c,t,dash])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash(dash?[5,4]:[]);g.beginPath();g.moveTo(xs,Y(v));g.lineTo(W-Rm,Y(v));g.stroke();g.setLineDash([]);g.fillStyle=c;g.font='bold 11px sans-serif';g.fillText(t+' '+v.toFixed(2),W-Rm+4,Y(v)+(t==='入場'?-8:0))});
+ if(reveal){const xs=X(p0+sc.idxE);[[sc.entry,'#8e24aa','入場',0],[sc.stop,AX,'止蝕',1],[sc.target,'#f9a825','目標',1]].forEach(([v,c,t,dash])=>{g.strokeStyle=c;g.lineWidth=1.6;g.setLineDash(dash?[5,4]:[]);g.beginPath();g.moveTo(xs,Y(v));g.lineTo(W-Rm,Y(v));g.stroke();g.setLineDash([]);});tagY.forEach(a=>{g.fillStyle=a.c;g.font='bold 11px sans-serif';g.fillText(a.t+' '+a.v.toFixed(2),W-Rm+4,a.y)});
   const dx=X(vis.length-1)+sl/2;g.strokeStyle=AX;g.setLineDash([3,3]);g.beginPath();g.moveTo(dx,top);g.lineTo(dx,vt+VH);g.stroke();g.setLineDash([]);g.fillStyle=AX;g.font='11px sans-serif';g.fillText('後續走勢（答案揭示）→',dx+4,top+PH-6);
-  if(sc.hard){const bi=sc.bi!=null?sc.bi:vis.length-1,b=vis[bi];g.fillStyle=sc.fake?V('--bad','#c62828'):V('--ok','#0a7d32');g.font='bold 11px sans-serif';g.fillText((sc.fake?'假突破：量 ':'真突破：量 ')+sc.brkV.toFixed(1)+'×',X(bi)-40,vt+VH-b.v/vm*VH-10);g.font='11px sans-serif'}}
+  if(sc.hard){const bi=sc.bi!=null?sc.bi:vis.length-1,b=vis[bi],txt=(sc.fake?'假'+(sc.d>0?'突破':'跌破')+'（量只有 ':'真'+(sc.d>0?'突破':'跌破')+'（量 ')+sc.brkV.toFixed(1)+' 倍均量）',col=sc.fake?V('--bad','#c62828'):V('--ok','#0a7d32');g.font='bold 12px sans-serif';const tw=g.measureText(txt).width,ty=sc.d>0?Math.max(top+24,Y(b.h)-22):Math.min(top+PH-10,Y(b.l)+22),tx=Math.max(L+4,X(bi)-tw-8);g.fillStyle=BG;g.globalAlpha=.9;g.fillRect(tx-3,ty-9,tw+6,18);g.globalAlpha=1;g.strokeStyle=col;g.strokeRect(tx-3,ty-9,tw+6,18);g.fillStyle=col;g.fillText(txt,tx,ty);g.font='11px sans-serif'}}
  const dot=pt=>{g.fillStyle=USR;g.beginPath();g.arc(X(pt.i),Y(pt.p),4.5,0,7);g.fill()};
  const uline=(a,b,dash)=>{const f=i=>a.p+(b.p-a.p)*(i-a.i)/((b.i-a.i)||1e-6),i0=Math.min(p0-1,a.i,b.i),i1=Math.max(p0+M,a.i,b.i);g.strokeStyle=USR;g.lineWidth=2.4;g.setLineDash(dash||[]);g.beginPath();g.moveTo(X(i0),Y(f(i0)));g.lineTo(X(i1),Y(f(i1)));g.stroke();g.setLineDash([]);g.lineWidth=1};
  if(o.user)o.user.forEach(([a,b])=>{uline(a,b,[3,3]);dot(a);dot(b)});
@@ -480,13 +481,17 @@ function learnHome(){view(`<div class="card">${back}<h2>📚 學習模式</h2><p
  <button id="rall">🧠 主動回憶全部 ${PK.length} 張知識卡</button></div>
  <div class="lgrid">${PK.map(k=>{const P=PATTERNS[k],c=S.cards['L:'+k];return`<div class="lcard" data-k="${k}">${schem(k)}<b>${P.name}</b> ${S.learned[k]?'✅':''}<div class="small">${P.cat}｜${P.mn}</div><div class="small">掌握 ${mbar(mastery(k))}</div>${c?`<div class="small">知識卡：${fmtDue(c.due)}</div>`:''}</div>`}).join('')}</div>`);
  on('rall',()=>startRecall(PK.slice()));document.querySelectorAll('.lcard').forEach(b=>b.onclick=()=>learnDetail(b.dataset.k))}
+function exNote(sc){const P=sc.P,dir=sc.d>0?'向上':'向下',opp=sc.d>0?'向下':'向上';
+ if(sc.fake)return`<div class="badbox"><b>⚠️ 呢個例子係「假${sc.d>0?'突破':'跌破'}」</b>：最後一支K收市${sc.d>0?'升穿':'跌穿'}${brkName(P,sc.d)}，但成交量只有約 ${sc.brkV.toFixed(1)} 倍 20 日均量（未確認），之後收返入形態並${opp}走——所以走勢同偏向相反。<br>形態${biasTxt(P.bias)}呢點冇錯，錯在冇等確認就入場：要量 ≥1.5 倍先算數。撳「高級例子」再睇多幾個，對比真突破。</div>`;
+ if(sc.hard)return`<div class="okbox"><b>✅ 呢個例子係「真${sc.d>0?'突破':'跌破'}」</b>：突破K成交量約 ${sc.brkV.toFixed(1)} 倍 20 日均量，收市企穩線外＝確認，之後${dir}走向目標。</div>`;
+ return`<div class="okbox">示範：收市有效${sc.d>0?'突破':'跌破'}${brkName(P,sc.d)}並放量，之後${dir}走${P.bias===0?'（中性形態，今次突破方向係'+dir+'）':''}。</div>`}
 function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const P=PATTERNS[k],sc=genScenario(k,lv,rs());
  view(`<div class="card">${back} <button class="alt sm" id="lh">← 形態列表</button>
  <div class="tags"><span class="tag">${P.cat}</span><span class="tag">示範例題・${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
  <h2>${P.name}</h2><p class="mn">💡 口訣：${P.mn}</p>
  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"><div style="flex:0 0 160px">${schem(k)}<div class="small">示意圖：橙＝阻力、藍＝支持、箭咀＝偏向</div></div>
  <div style="flex:1 1 260px"><p><b>特徵</b>：${P.feat}</p><p><b>第一性原理</b>：${P.pr}</p><p><b>偏向</b>：${biasTxt(P.bias)}</p></div></div>
- <div class="cvwrap"><canvas id="cv"></canvas></div>
+ <div class="cvwrap"><canvas id="cv"></canvas></div>${exNote(sc)}
  <table><tr><th>入場</th><td>收市價有效突破${P.bias===0?'上軌或下軌（等方向確認）':brkName(P,P.bias)}，並伴隨成交量明顯放大（約 1.5 倍均量或以上）；突破K縮量＝未確認。</td></tr>
  <tr><th>止蝕</th><td>${P.stopTxt||'形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。'}</td></tr><tr><th>目標</th><td>${methOf(P)}。</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
  <div class="jlbox"><b>📘 J Law 重點</b>：${JLP[k]}</div>
