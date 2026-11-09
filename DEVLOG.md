@@ -6,6 +6,7 @@
 
 ```bash
 node tests/validate.cjs
+node tests/direction.cjs   # 偏向、示意圖、線斜率、後續走勢方向逐個核對
 ```
 
 會生成 12,600 個形態情境（14 形態 × 3 級 × 300 個種子）＋ VCP、M.E.T.A.、計算題、概念題、2,000 個實戰決策情境，檢查：
