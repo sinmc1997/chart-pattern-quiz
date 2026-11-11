@@ -1,5 +1,7 @@
 # 開發紀錄（DEVLOG）
 
+> 想起第 2 個學習網站：睇 [LEARNING_SITE_BLUEPRINT.md](LEARNING_SITE_BLUEPRINT.md)。
+
 每次優化都記低喺度：做咗乜、點驗證、下次可以做乜。下次開新對話，叫 Claude 先讀呢個檔案再繼續。
 
 ## 點樣驗證（每次改完都要跑）
