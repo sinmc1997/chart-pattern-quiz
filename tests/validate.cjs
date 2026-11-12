@@ -29,6 +29,9 @@ for(const v of['valid','down','wide','loose'])for(let s=1;s<=150;s++){const g=ge
 for(let s=1;s<=200;s++){const m=genMETAok(s*15485863);if(m.c>=3&&(m.entry-m.stop)/m.entry>.1)add('meta risk>10%',1)}
 for(const k in DRILLS)for(let i=0;i<300;i++){const g=DRILLS[k].gen();const ok=g.o.filter(o=>o.ok).length;if(ok!==1)add('drill ok!=1 '+k,ok);const t=g.o.map(o=>o.t);if(new Set(t).size!==t.length)add('drill dup '+k,t.join('|'))}
 for(const q of QB){const t=[q.a,...q.w];if(new Set(t).size!==t.length)add('QB dup',q.id)}
+// 概念題 id 唔可以重複（間隔重複卡用 id 做 key）；每題嘅課號要存在；第 19 課（真實基準率）要有題目
+{const ids=new Set(X.JL.map(l=>l.id));if(new Set(QB.map(q=>q.id)).size!==QB.length)add('QB id dup','');for(const q of QB)if(!ids.has(q.L))add('QB lesson missing',q.id+' L'+q.L);
+ for(const l of X.JL)if(!l.pts.length||l.pts.some(p=>typeof p!=='string'||!p))add('lesson bad pts',l.id);const n19=QB.filter(q=>q.L===19).length;if(n19<5)add('lesson 19 QB <5',n19)}
 if(X.genDecision)for(let s=1;s<=2000;s++){const D=X.genDecision(s*31337);const qs=X.buildDecQs(D);if(!(D.E>D.S))add('dec E<=S',D.key);if(D.shares<=0)add('dec shares<=0',D.key);if(D.rr<=0)add('dec rr<=0 '+D.f,D.rr);if((D.f==='ext')!==(D.ext>5))add('dec ext mismatch '+D.f,D.ext.toFixed(1));if(D.sc.fake!==(D.f==='fake'))add('dec fake mismatch',D.key);const e=D.ix.bars.length-1,c=D.ix.bars[e].c,m50=D.ix.m50[e],m200=D.ix.m200[e];const rg=c>m50&&m50>m200?'bull':c<m50&&c>m200?'corr':c<m200?'bear':'?';if(rg!==D.reg)add('dec regime mismatch '+D.reg,rg);qs.forEach((q,i)=>{const ok=q.o.filter(o=>o.ok).length;if(ok!==1)add('dec q'+i+' ok='+ok,D.why);const t=q.o.map(o=>o.t);if(new Set(t).size!==t.length)add('dec dup q'+i,t.join('|'))})}
 console.log('情境數',N,'QB',QB.length);const ks=Object.keys(iss);for(const k of ks)console.log(iss[k].n,'\t',k,'\t',String(iss[k].ex).slice(0,220));
 if(ks.length){console.log('❌ 有問題');process.exitCode=1}else console.log('✅ 全部通過');
