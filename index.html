@@ -146,6 +146,17 @@ ihs:{cat:'頭肩',name:'頭肩底',s:'頭肩底',pre:-1,bias:1,up:'頸線',lo:'�
 const PK=Object.keys(PATTERNS),KEYS='1234567890qwer';
 const HARD_FAIL='假突破：突破K線縮量、未獲確認，價格隨後跌回形態內';
 // 明顯錯誤嘅「出錯原因」（J Law 唔用二手指標），用嚟補足選項，避免出現兩個都啱嘅答案
+/* ================= 📊 實測提示（回測數據，2026-11） =================
+   來源：daddy 量化系統 jlaw_quant/reports/quiz_research_summary.md。改數字只改呢度。 */
+const BT_SRC='4,491 隻美股 2014–2026 回測，非投資建議';
+const BT={
+ base:'教學圖揀咗跟規則嘅靚例子；現實入面，放量（1.5–2.5 倍均量）突破仍有約 38% 喺 20 日後跌返入形態（縮量 42%、爆量 ≥4 倍 20%），約三成突破 60 日內最多只升唔夠 5%',
+ ok:'清單全過只係提高期望值，唔保證贏——放量突破仍有約 38% 喺 20 日後跌返入形態；機械式照規則做勝率只有兩至三成，利潤靠少數大贏家',
+ target:'量度目標用嚟計「值唔值得做」（報酬風險比）；實戰唔好喺固定目標價全部走晒——回測喺 2.5R 封頂會損失 77% 利潤，大贏家要用移動止蝕跟住',
+ meta:'優勢數越多<b>冇</b>令結果更好——1／2／3／4 個優勢每筆期望值 +0.25／+0.21／+0.16／+0.04R。M.E.T.A. 嘅用處係定「入場位置同止蝕位」，唔係提高勝率；「≥3 個先入」係 J Law 原教法，題目照用',
+ tf:'同一套規則，K 線時段越短，每筆期望值越低、成本佔比越高——放量突破每筆 週 +0.79R、日 +0.46R、4 小時 +0.31R、1 小時 +0.21R；5 分鐘扣成本後每筆蝕 0.4–0.6R（時段比較用同一批 295 隻股票、2024 年 8 月起；5 分鐘樣本只有約 40 日）',
+ mkt:'突破失敗集中喺大市轉弱期——2025 年第一季有 54% 突破喺 20 日後跌返入形態（平時約三至四成）'};
+const btT=t=>'📊 實測提示：'+t+'（'+BT_SRC+'）',bt=t=>'<span class="small">📊 <b>實測提示</b>：'+t+'（'+BT_SRC+'）</span>';
 const GEN_WRONG=['RSI 未去到超賣／超買，所以形態一定失效','MACD 未出現金叉，所以突破一定失敗','分析師冇上調目標價，所以形態唔會成功'];
 const ITEMS=['形態名稱','第一性原理','偏向','入場條件','止蝕','目標價','最可能出錯原因'];
 const DRILL=['練習：用 3 張圖只問「幾條線？邊條平？邊條斜？有冇頸線？」，先分類再命名。','練習：每個形態用一句「邊方較急／邊條線係供給或需求」講出來，再對答案。','練習：只睇前段趨勢＋形態斜率，講出偏向，唔好睇答案走勢。','練習：高級題先睇灰色均量線——突破K量 ≥1.5 倍先算確認，再重做 3 題。','練習：止蝕放「最近嘅結構位」之外（對側軌道、右肩、柄低、最後反彈高位），計算同入場價嘅百分比距離。','練習：三角形量最闊位、旗形量旗桿、楔形回到起點、頸線形態量頭部到頸線、杯柄量杯深，各量一次。','練習：每題先寫「呢單點樣會輸」，對照形態常見失敗模式。'];
@@ -290,7 +301,7 @@ function buildQs(sc,seed){
  qs.push({it:4,p:`假設已按${d>0?'突破上方':'跌破下方'}入場（入場價約 $${f(E)}），止蝕放邊？`,o:shuf(R,sv.map((v,i)=>op(`$${f(v)}（距入場 ${pc(v)}）`,i===0))),
   ex:`正解約 $${f(sc.stop)}。${P.stopTxt||'止蝕放形態對側軌道外一點'}；太貼突破位易被回踩掃走，放形態極端位則蝕位過大，放入場價另一邊根本不合邏輯。`});
  const tv=[sc.target,E+d*sc.m*.5,E+d*sc.m*2.2,E-d*sc.m];
- qs.push({it:5,p:'目標價（同一入場價 $'+f(E)+'）？',o:shuf(R,tv.map((v,i)=>op(`$${f(v)}（${pc(v)}）`,i===0))),ex:`量度法：${methOf(P)}，約 $${f(sc.target)}（報酬風險比約 ${(sc.m/Math.abs(E-sc.stop)).toFixed(1)}R）。`});
+ qs.push({it:5,p:'目標價（同一入場價 $'+f(E)+'）？',o:shuf(R,tv.map((v,i)=>op(`$${f(v)}（${pc(v)}）`,i===0))),ex:`量度法：${methOf(P)}，約 $${f(sc.target)}（報酬風險比約 ${(sc.m/Math.abs(E-sc.stop)).toFixed(1)}R）。<br>${bt(BT.target)}`});
  // 出錯原因：干擾項唔可以同正解同類，亦唔可以係「假突破」類（呢類對所有突破都成立，會變成兩個答案都啱）
  const fr=sc.failTxt,ftC=fake?'fb':hard?'retest':P.ft,isFb=t=>t==='fbUp'||t==='fbDn'||t==='fb';
  const pool=shuf(R,keys.filter(k=>k!==key).map(k=>PATTERNS[k]).filter(Q=>Q.ft!==ftC&&!isFb(Q.ft)&&Q.fail!==fr).map(Q=>Q.fail)).filter((t,i,a)=>a.indexOf(t)===i);
@@ -483,8 +494,8 @@ function learnHome(){view(`<div class="card">${back}<h2>📚 學習模式</h2><p
  on('rall',()=>startRecall(PK.slice()));document.querySelectorAll('.lcard').forEach(b=>b.onclick=()=>learnDetail(b.dataset.k))}
 function exNote(sc){const P=sc.P,dir=sc.d>0?'向上':'向下',opp=sc.d>0?'向下':'向上';
  if(sc.fake)return`<div class="badbox"><b>⚠️ 呢個例子係「假${sc.d>0?'突破':'跌破'}」</b>：最後一支K收市${sc.d>0?'升穿':'跌穿'}${brkName(P,sc.d)}，但成交量只有約 ${sc.brkV.toFixed(1)} 倍 20 日均量（未確認），之後收返入形態並${opp}走——所以走勢同偏向相反。<br>形態${biasTxt(P.bias)}呢點冇錯，錯在冇等確認就入場：要量 ≥1.5 倍先算數。</div>`;
- if(sc.hard)return`<div class="okbox"><b>✅ 呢個例子係「真${sc.d>0?'突破':'跌破'}」</b>：突破K成交量約 ${sc.brkV.toFixed(1)} 倍 20 日均量，收市企穩線外＝確認，之後${dir}走向目標。</div>`;
- return`<div class="okbox">示範：收市有效${sc.d>0?'突破':'跌破'}${brkName(P,sc.d)}並放量，之後${dir}走${P.bias===0?'（中性形態，今次突破方向係'+dir+'）':''}。</div>`}
+ if(sc.hard)return`<div class="okbox"><b>✅ 呢個例子係「真${sc.d>0?'突破':'跌破'}」</b>：突破K成交量約 ${sc.brkV.toFixed(1)} 倍 20 日均量，收市企穩線外＝確認，之後${dir}走向目標。<br>${bt(BT.base)}</div>`;
+ return`<div class="okbox">示範：收市有效${sc.d>0?'突破':'跌破'}${brkName(P,sc.d)}並放量，之後${dir}走${P.bias===0?'（中性形態，今次突破方向係'+dir+'）':''}。<br>${bt(BT.base)}</div>`}
 function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const P=PATTERNS[k],pickSc=fk=>{let x;for(let i=0;i<50;i++){x=genScenario(k,lv,rs());if(lv<3||x.fake===fk)break}return x},sc=pickSc(false),sc2=lv===3?pickSc(true):null;
  view(`<div class="card">${back} <button class="alt sm" id="lh">← 形態列表</button>
  <div class="tags"><span class="tag">${P.cat}</span><span class="tag">示範例題・${LV[lv]}</span><span class="tag sim">模擬教學圖</span></div>
@@ -494,7 +505,7 @@ function learnDetail(k,lv){if(!S)load();lv=lv||1;S.learned[k]=true;save();const 
  ${lv===3?'<h3>① 真'+(P.bias<0?'跌破':'突破')+'：跟口訣行</h3>':''}<div class="cvwrap"><canvas id="cv"></canvas></div>${exNote(sc)}
  ${sc2?`<h3>② 假${P.bias<0?'跌破':'突破'}：口訣失效嘅情況（同一個形態）</h3><div class="cvwrap"><canvas id="cv2"></canvas></div>${exNote(sc2)}<p class="small">兩幅圖形態一樣，分別只係突破K嘅成交量：口訣講嘅係「偏向」，要放量確認先信。</p>`:''}
  <table><tr><th>入場</th><td>收市價有效突破${P.bias===0?'上軌或下軌（等方向確認）':brkName(P,P.bias)}，並伴隨成交量明顯放大（約 1.5 倍均量或以上）；突破K縮量＝未確認。</td></tr>
- <tr><th>止蝕</th><td>${P.stopTxt||'形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。'}</td></tr><tr><th>目標</th><td>${methOf(P)}。</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
+ <tr><th>止蝕</th><td>${P.stopTxt||'形態對側軌道外一點（太貼易被掃，放極端位蝕太多）。'}</td></tr><tr><th>目標</th><td>${methOf(P)}。<br>${bt(BT.target)}</td></tr><tr><th>常見失敗</th><td>${P.fail}</td></tr></table>
  <div class="jlbox"><b>📘 J Law 重點</b>：${JLP[k]}</div>
  <h3>⚖️ 易混淆形態</h3>${SIMILAR[k].map(b=>diffBox(k,b)).join('')}
  <h3>下一步</h3><button id="ex1" class="alt">🔄 換個例子</button><button id="ex2" class="alt">中級例子</button><button id="ex3" class="alt">高級：真 vs 假突破對比</button><br>
@@ -576,6 +587,7 @@ function gradeQuiz(ans,gs,why){const{sc,qs}=CUR,k=sc.key,P=sc.P;let tot=0,eff=0;
  <div class="srs">📅 下次複習「${P.name}」：${fmtDue(c.due)}　｜　掌握度 ${m0}% → <b>${m1}%</b>${m1>m0?' ⬆️':m1<m0?' ⬇️':''}</div>
  ${wrongIt.length?`<h3>✍️ 自我解釋（選填，會存入錯題本）</h3><textarea id="se" placeholder="用自己嘅說話寫：點解正解係啱？下次見到點認？">${mref&&mref.note?esc(mref.note):''}</textarea>`:''}
  <p class="small">答案線：橙＝阻力（供給）、藍＝支持（需求）、紫＝入場、灰虛線＝止蝕、黃虛線＝目標。教學用途，非投資建議。</p>
+ <p>${bt(BT.base)}</p>
  <button id="nx">${SES.n<SES.total-1?'下一題':'完成本輪'}</button></div>`);
  drawChart($('cv'),sc,{reveal:true});
  on('nx',()=>{const se=$('se');if(se&&mref&&se.value.trim()){mref.note=se.value.trim();save()}if(SES.n<SES.total-1){SES.n++;nextQuiz()}else quizSummary()})}
@@ -761,7 +773,8 @@ const JL=[
  '支持與阻力：係區間、有記憶、會互換（Flipping）、測試越多越弱；止蝕放區間外。',
  '突破後回測（Back test）係正常；穿越後快速收返多數係陷阱（Shakeout）。',
  '高時間維度支持阻力凌駕低時間維度。',
- '追求時間效率：3 日賺 20% 好過 3 個月賺 20%。']},
+ '追求時間效率：3 日賺 20% 好過 3 個月賺 20%。',
+ btT('優勢數越多冇令結果更好——1／2／3／4 個優勢每筆期望值 +0.25／+0.21／+0.16／+0.04R。M.E.T.A. 嘅真正用處係幫你定「入場位置同止蝕位」（喺優勢區入、止蝕放優勢區下方），唔係提高勝率。「≥3 個優勢先入」係 J Law 原教法，練習題照用，但唔好以為數夠優勢就穩陣')]},
 {id:6,t:'拉回買入法 Pullback Buy',src:'Pullback Buy 完整教學',mn:'錯過突破唔追高，等重新突破小型下降趨勢線。',rel:['bullflag'],pts:[
  '錯過第一個突破點，等股價調整後重新突破「小型下降趨勢線」，係第二次低風險機會。',
  '只用喺第二階段上升（右側），最好早中期。',
@@ -855,9 +868,23 @@ const JL=[
  '⑥ 倉位：股數＝帳戶 × 每單風險% ÷（入場 − 止蝕）；全注一般風險 1%，減半注 0.5%。',
  '管理：升到 +2R 賣部分、止蝕移成本；0–3 根 K 內跌返形態入面＝假突破跡象，離場；到止蝕就走，永不移低止蝕。',
  'RSI、MACD、分析師目標價、朋友貼士都係雜訊，唔改變決定。',
- '好決定可以蝕錢、壞決定可以撞啱：長遠只有「重複正確過程」先會令資金曲線向上。']}];
+ '好決定可以蝕錢、壞決定可以撞啱：長遠只有「重複正確過程」先會令資金曲線向上。',
+ btT('大市：'+BT.mkt+'。所以大市排清單第 ①'),
+ btT('目標：固定目標價會斬短大贏家，回測喺 2.5R 封頂會損失 77% 利潤。+2R 賣部分之後，餘倉用移動止蝕跟住，唔好設死目標價'),
+ btT('K 線時段：呢份清單係日線規則。'+BT.tf+'。時段越短止蝕越窄，同一筆成本食咗越多個 R')]},
+{id:19,t:'真實基準率：回測話你知嘅現實',src:BT_SRC,mn:'教學圖係揀出嚟嘅靚例子；現實大部分突破只係普通，利潤靠少數大贏家。',rel:[],pts:[
+ '數據：用同一套機械規則，回測 4,491 隻美股 2014–2026 年約 3.4 萬次突破。係歷史統計，唔代表將來，非投資建議。',
+ '約三成突破 60 日內最多只升唔夠 5%（縮量 32%、放量 29%、爆量 24%）——典型突破只係普通，唔好期望次次好似教學圖咁走到目標。',
+ '放量唔係保證：放量（1.5–2.5 倍均量）突破仍有約 38% 喺 20 日後跌返入形態；縮量（<1 倍）42%、爆量（≥4 倍）20%。放量係加分，唔係免死金牌。',
+ '量越大，兩邊都放大：「突破日就係頂」由縮量 3% 升到爆量 11%，但跌返入形態由 42% 跌到 20%。成交量放大嘅係波幅。',
+ '勝率只有兩至三成：機械式照規則做，放量突破勝率約 27–29%、回調入場約 20–22%，每筆期望值只係約 +0.2 至 +0.35R。賺錢靠贏嘅交易平均係輸嘅 3.5–5 倍，少數大贏家貢獻大部分利潤。（同 J Law 講嘅 40–55% 唔可以直接比：回測係機械式照規則、唔揀股，而且唔設固定目標、等大贏家跑，勝率自然更低。）',
+ '固定目標價會斬短大贏家：回測喺 2.5R 封頂會損失 77% 利潤。量度目標用嚟計值唔值得做，出場用移動止蝕。',
+ 'M.E.T.A. 優勢數唔等於勝率：1／2／3／4 個優勢每筆 +0.25／+0.21／+0.16／+0.04R，越多冇越好。M.E.T.A. 係用嚟定入場位置同止蝕位。',
+ 'K 線時段越短越難：同一批 295 隻股票、同一段時間（2024 年 8 月起），放量突破每筆 週 +0.79R、日 +0.46R、4 小時 +0.31R、1 小時 +0.21R（未扣成本）；5 分鐘扣 0.2% 來回成本後每筆蝕 0.4–0.6R（5 分鐘樣本只有約 40 日，只可以睇成本結構）。原因：止蝕闊度由週線約 10–20% 縮到 5 分鐘 0.4–0.9%。',
+ '大市決定成敗：突破失敗集中喺大市轉弱期——2025 年第一季 54%、2026 年第三季 46% 突破喺 20 日後跌返入形態（平時約三至四成）。',
+ '結論：形態訓練仍然有用——佢教你搵「入場位置同止蝕位」。但賺唔賺錢，更取決於止蝕、倉位、大市同唔斬贏家；大部分交易係細蝕或者細賺，要接受。']}];
 const jlT=L=>JL.find(x=>x.id===L),isSug=L=>L>=12,lname=L=>(isSug(L)?'建議補充':'第 '+L+' 課')+'・'+jlT(L).t;
-const RO=[5,2,3,4,12,15,1,13,6,14,9,7,8,16,10,11,17,18];
+const RO=[5,2,3,4,12,15,1,13,6,14,9,7,8,16,10,11,17,18,19];
 
 /* 概念題庫：[id, 課, 問題, 正解, [錯誤選項], 解釋] */
 const QB=[
@@ -975,6 +1002,20 @@ const QB=[
 ['n14',18,'財報 3 日後公佈，形態啱啱突破，新倉位應該？','等財報後先入（或極細注），避免跳空風險',['照全注入','財報前加注','唔設止蝕'],'跳空可以直接跳過止蝕位。'],
 ['n15',18,'每單風險 1%、帳戶 $50,000、入場 $40、止蝕 $37.5，應買幾多股？','200 股',['500 股','1,250 股','100 股'],'風險金額 $500 ÷ 每股風險 $2.5＝200 股。'],
 ['n16',18,'入場後升到 +2R，常見嘅管理方法係？','賣出部分鎖利，止蝕移到成本價（保本）',['全部加注','將止蝕移低畀佢多啲空間','唔理，等佢自己跌返'],'用利潤付風險，令最差結果變成打和。']
+/* 📊 以下 13 題用回測實測數字（BT_SRC） */
+,['e10',5,'回測 13 年數據，M.E.T.A. 優勢數同每筆交易結果嘅關係係？','優勢越多冇令結果更好（1／2／3／4 個：+0.25／+0.21／+0.16／+0.04R）',['優勢越多，勝率同利潤都明顯越高','有 4 個優勢就一定賺','少過 3 個優勢嘅交易全部蝕錢'],btT('「≥3 個優勢先入」係 J Law 原教法，但數夠優勢唔會提高勝率')],
+['e11',5,'按回測結果，M.E.T.A. 最實際嘅用處係？','幫你定入場位置同止蝕位（喺優勢區入、止蝕放優勢區下方）',['將勝率提高到七成以上','優勢夠多就唔使止蝕','優勢夠多就可以加大注碼'],btT('M.E.T.A. 話你知「喺邊度入、錯咗喺邊度走」，令每筆風險細而清楚；佢唔係勝率保證')],
+['n17',18,'股價升到形態量度目標，回測顯示「喺固定目標價全部走晒」有咩問題？','斬短大贏家：喺 2.5R 封頂會損失約 77% 利潤，餘倉應該用移動止蝕跟住',['冇問題，到目標就應該全部走','目標價定得越近越好，因為勝率最高','應該將止蝕移低，等佢升多啲'],btT('利潤集中喺少數大贏家；量度目標用嚟計值唔值得做（報酬風險比），唔係用嚟封頂')],
+['n18',18,'同一套突破規則，用喺越短嘅 K 線時段（週 → 日 → 4 小時 → 1 小時 → 5 分鐘），回測結果係？','每筆期望值越低、成本佔比越高（週 +0.79R → 1 小時 +0.21R；5 分鐘扣成本後蝕錢）',['時段越短越準，因為訊號多','各個時段結果差唔多','5 分鐘線最賺，因為止蝕最細'],btT('放量突破每筆 週 +0.79R、日 +0.46R、4 小時 +0.31R、1 小時 +0.21R；5 分鐘扣成本後每筆蝕 0.4–0.6R。止蝕越窄，同一筆成本食咗越多個 R')],
+['n19',18,'回測入面，突破失敗（跌返入形態）最集中喺咩時候？','大市轉弱期（例如 2025 年第一季，54% 突破 20 日後跌返入形態）',['大市升勢最強、不斷創新高嘅時候','每個月都差唔多，同大市無關','突破成交量最大嘅日子'],btT('平時約三至四成突破會跌返入形態，大市轉弱期升到五成以上——所以決策清單第 ① 項係大市')],
+['br1',19,'回測約 3.4 萬次突破，大約幾多成喺 60 日內最多只升唔夠 5%？','約三成',['約 5%','約一成','約七成'],btT('縮量 32%、放量 29%、爆量 24%——典型突破只係普通')],
+['br2',19,'放量（1.5–2.5 倍均量）突破，20 日後跌返入形態嘅比例大約係？','約 38%',['約 5%','約 15%','約 75%'],btT('縮量 42%、放量 38%、爆量（≥4 倍）20%。放量係加分，唔係保證')],
+['br3',19,'突破日成交量越大，回測見到咩？','「突破日就係頂」越多（3% → 11%），但跌返入形態越少（42% → 20%）',['各方面都越好，冇任何壞處','越容易跌返入形態','成交量同結果完全冇關係'],btT('量放大嘅係波幅，兩邊都會放大')],
+['br4',19,'縮量突破同放量突破，「20 日後跌返入形態」嘅比例差幾遠？','只差幾個百分點（約 42% 對 38%）',['縮量九成失敗，放量一成失敗','縮量一定失敗，放量一定成功','放量反而失敗多一倍'],btT('所以放量確認之後，一樣要守止蝕')],
+['br5',19,'機械式照規則做放量突破，回測勝率大約係？','兩至三成（約 27–29%）',['七至八成','約五成半','九成以上'],btT('回調入場更低，約 20–22%。回測唔設固定目標、等大贏家跑，所以勝率偏低')],
+['br6',19,'勝率只有兩三成，點解每筆期望值仲係正數？','贏嘅交易平均係輸嘅 3.5–5 倍，少數大贏家貢獻大部分利潤',['因為每筆都賺少少','因為唔使止蝕','因為靠加注攤平'],btT('每筆期望值約 +0.2 至 +0.35R。所以唔可以斬短贏家，亦唔可以唔止蝕')],
+['br7',19,'訓練營嘅示範圖同現實，最大分別係？','示範圖揀咗跟規則嘅例子；現實大部分突破只係普通，要靠止蝕同少數大贏家',['現實嘅突破成功率高過示範圖','現實入面形態完全冇用','現實唔使理成交量'],btT('約三成突破 60 日內最多只升唔夠 5%；放量突破仍有約 38% 跌返入形態')],
+['br8',19,'既然真實基準率咁普通，學形態最實際嘅用處係？','搵入場位置同止蝕位、控制每筆風險；賺錢仲要靠大市、倉位同唔斬贏家',['提高勝率到八成','預測股價會升到邊','代替止蝕同倉位管理'],btT('放量突破仍然有效（2023–26 同 2014–19 差唔多），但要當成「有少少優勢嘅入場位」，唔係必勝訊號')]
 ].map(([id,L,q,a,w,ex])=>({id,L,q,a,w,ex}));
 
 /* 形態 × J Law：線名同重點 */
@@ -999,7 +1040,7 @@ const ITEM_JL=['J Law：先數線、睇斜度；趨勢線用兩個 swing 點就�
  'J Law：方向要順大市週期；強勁趨勢中嘅整理，通常順勢突破。',
  'J Law：等收市確認、放量更好；距突破點已超過 2–3% 唔追，錯過就等拉回買入。',
  'J Law：支持阻力係區間，止蝕放區間外；太貼容易被 Shakeout 洗走。單一股票風險上限 8%。',
- 'J Law：多數利潤喺關鍵阻力（TRL、通道頂）先鎖定，只留 20–30% 搏更大升幅。',
+ 'J Law：多數利潤喺關鍵阻力（TRL、通道頂）先鎖定，只留 20–30% 搏更大升幅。📊 實測提示：固定目標價會斬短大贏家（2.5R 封頂損失 77% 利潤），餘倉用移動止蝕跟住（'+BT_SRC+'）。',
  'J Law 假突破三問：穿越時有冇放量？有冇觸發止蝕？0–3 根 K 內有冇收返？'];
 
 /* ================= 情境計算題（隨機生成） ================= */
@@ -1008,7 +1049,7 @@ const usd=x=>'$'+(+x).toLocaleString('en-US',{minimumFractionDigits:0,maximumFra
 function uniqOpts(c,ws){const seen=new Set([c]),o=[{t:c,ok:true}];for(const w of ws){if(o.length>=4)break;if(!seen.has(w)){seen.add(w);o.push({t:w,ok:false})}}return o}
 const EDGES=[['股價回落到之前突破嘅前浪頂（阻力已變支持）','附近冇明顯前浪頂或橫向區間'],['回落觸及由兩個 swing low 畫出嘅上升趨勢線（UTL）','已經跌穿上升趨勢線（UTL）'],['啱啱突破回調期間嘅小型下降趨勢線（DTL）','仍然喺回調嘅下降趨勢線（DTL）之下'],['同時接近 20MA 同 50MA','距離 10／20／50MA 都好遠'],['拉回期間成交量明顯低過 50 日平均','拉回期間成交量放大，高過 50 日平均']];
 const NOISE=['RSI(14) 跌到 28，「超賣」','財經新聞話分析師上調目標價','MACD 出現金叉','朋友話呢隻一定升'];
-const META_DEC=n=>n>=3?'M.E.T.A.：可以考慮入場（Danger Point 或等反彈確認）':'優勢唔夠：唔入場，等更多優勢重疊';
+const META_DEC=n=>n>=3?'M.E.T.A.：可以考慮入場（Danger Point 或等反彈確認），止蝕放優勢區下方':'優勢唔夠：唔入場，等更多優勢重疊';/* 正解邏輯不變：≥3 係 J Law 原教法；實測提示喺解釋（BT.meta） */
 const DRILLS={
 breakeven:{name:'回本所需升幅',L:11,gen(){const L=pick([8,10,15,20,25,30,40,50,60,75]),need=L/(100-L)*100,f=x=>x.toFixed(1).replace(/\.0$/,'')+'%';
  return{q:`一隻股票由買入價跌咗 <b>${L}%</b>，要升幾多先回本？`,o:uniqOpts(f(need),[f(L),f(need*1.5),f(L*.8),f(need*.7),f(need+10)]),
@@ -1023,7 +1064,7 @@ meta:{name:'M.E.T.A. 優勢判斷',L:5,gen(){const hit=EDGES.map(()=>Math.random
  lines=shuf(Math.random,[...EDGES.map((e,i)=>hit[i]?e[0]:e[1]),...shuf(Math.random,NOISE).slice(0,ri(1,2))]),f=n=>`${n} 個優勢｜${META_DEC(n)}`;
  return{q:`第二階段強勢股回調，你觀察到：<ul>${lines.map(x=>'<li>'+x+'</li>').join('')}</ul>按 J Law M.E.T.A. 概念，呢個位置有幾多個優勢重疊？應該點做？`,
  o:uniqOpts(f(c),[f(Math.min(5,c+1)),f(Math.max(0,c-1)),f(Math.min(5,c+2)),f(Math.max(0,c-2)),`${c} 個優勢｜唔理優勢，加槓桿全注`]),
- ex:`優勢：${EDGES.filter((e,i)=>hit[i]).map(e=>e[0]).join('；')||'冇'}（共 ${c} 個）。RSI、MACD、新聞、朋友意見都唔計——J Law 只睇價格、成交量同支持阻力。多個優勢喺同一位置重疊先係 M.E.T.A.。`}}},
+ ex:`優勢：${EDGES.filter((e,i)=>hit[i]).map(e=>e[0]).join('；')||'冇'}（共 ${c} 個）。RSI、MACD、新聞、朋友意見都唔計——J Law 只睇價格、成交量同支持阻力。多個優勢喺同一位置重疊先係 M.E.T.A.。<br>${bt(BT.meta)}`}}},
 dist:{name:'出貨日計數',L:9,gen(){const n=15,rows=[],list=[],fw=Math.random()<.4?ri(0,n-1):-1;let cnt=0;
  for(let i=0;i<n;i++){const r=Math.random();let ch;if(r<.35)ch=-rf(.1,2.2);else if(r<.5)ch=rf(0,.15);else ch=rf(.3,1.8);const vp=Math.random()<.55,va=Math.random()<.55,isD=i!==fw&&ch<.2&&vp&&va;if(isD){cnt++;list.push(i+1)}rows.push({ch,vp,va,fw:i===fw})}
  const f=k=>`${k} 個｜${k>=4?'進入戒備':'未到戒備線'}`;
@@ -1070,7 +1111,7 @@ const DEC_OPT={A:'按計劃入場：全注（每單風險 1%）',B:'入場但減
 const DEC_ANS={ok:'A',corr:'B',rs:'B',fake:'C',earn:'C',ext:'C',bear:'D',corr_rs:'D'};
 const DEC_NAME={ok:'清單全部通過',corr:'大市調整',rs:'RS 弱',fake:'突破未確認',earn:'財報臨近',ext:'已經追高',bear:'熊市',corr_rs:'調整市＋RS 弱'};
 const NOISE2=['RSI(14) 去到 72，有人話「超買」','分析師啱啱上調目標價','MACD 啱啱出現金叉','社交媒體好多人討論呢隻股','朋友話呢隻「一定升」'];
-const MGMT=[['入場後 5 日升到 +2R。','賣出部分（例如 1/3）鎖利，止蝕移到成本價（保本）','用利潤付風險：最差結果變成打和，又留返部分搏大升幅。'],
+const MGMT=[['入場後 5 日升到 +2R。','賣出部分（例如 1/3）鎖利，止蝕移到成本價（保本）','用利潤付風險：最差結果變成打和，又留返部分搏大升幅。📊 實測提示：餘倉用移動止蝕跟住，唔好設死目標價——回測喺 2.5R 封頂會損失 77% 利潤（'+BT_SRC+'）。'],
  ['入場後第 2 日收市跌返形態入面（突破位之下），成交量放大，但未到止蝕。','假突破跡象（0–3 根 K 內收返）：主動離場或減倉','J Law 假突破三問：0–3 根 K 內有冇收返？有就唔好死守。'],
  ['股價跌到止蝕位。','按計劃止蝕離場，唔移低止蝕','止蝕係入場前已經決定嘅「錯咗」定義；移低止蝕＝將細蝕變大蝕。'],
  ['持倉有 +1.5R 浮盈，但大市 2 週內出現第 5 個出貨日。','收緊止蝕／減倉，保護利潤','J Law 見頂訊號：2–4 週內 ≥4 個出貨日＝戒備，先保護利潤。']];
@@ -1110,13 +1151,14 @@ function buildDecQs(D){const R=mb(D.seed+99),f=x=>'$'+x.toFixed(2),qs=[];
   ex:`風險金額＝${usd(D.acct)} × ${D.risk}%＝${usd(amt.toFixed(0))}；每股風險＝${f(D.E)} − ${f(D.S)}＝${f(per)}（${(per/D.E*100).toFixed(1)}%）；股數＝${usd(amt.toFixed(0))} ÷ ${f(per)}＝<b>${D.shares.toLocaleString('en-US')} 股</b>。止蝕越遠，股數越少——倉位由風險決定，唔係由信心決定。`});
  const r=D.rr,F=x=>x.toFixed(1)+'R';
  qs.push({p:`目標 ${f(D.T)}（${methOf(PATTERNS[D.key])}）。以現價入場，報酬風險比係？`,o:shuf(R,uniqOpts(F(r),[F(r+1),F(r*2),F(Math.max(.1,r-1)),F(1/r),F(r+2)])),
-  ex:`R＝(${f(D.T)} − ${f(D.E)}) ÷ (${f(D.E)} − ${f(D.S)})＝<b>${F(r)}</b>。${D.f==='ext'?'追高令每股風險變大、潛在回報變細——同一個形態，盈虧比明顯差咗。':r<2?'低過 2R 嘅交易，勝率要好高先值得做。':'2R 以上先係值得承擔嘅風險。'}`});
+  ex:`R＝(${f(D.T)} − ${f(D.E)}) ÷ (${f(D.E)} − ${f(D.S)})＝<b>${F(r)}</b>。${D.f==='ext'?'追高令每股風險變大、潛在回報變細——同一個形態，盈虧比明顯差咗。':r<2?'低過 2R 嘅交易，勝率要好高先值得做。':'2R 以上先係值得承擔嘅風險。'}<br>${bt(BT.target)}`});
  const[sit,ok,why]=D.mg;qs.push({p:`假設已經入場：${sit}下一步？`,o:shuf(R,[{t:ok,ok:true},...shuf(R,MGMT_BAD).slice(0,3).map(t=>({t,ok:false}))]),ex:why});
  return qs}
 function decWhy(D){const t={ok:'大市升勢、突破放量確認、離財報遠、未追高、RS 強——清單全部通過，按計劃全注。',corr:`大市調整中（指數喺 50MA 之下、出貨日 ${D.dist} 個）：形態再靚都只用減半注。`,
  rs:'RS 線向下（跑輸大市）：唔係領導股，減半注。',fake:`突破K只得約 ${D.brkV.toFixed(1)} 倍均量，未確認：等放量收市或回測不破先入。`,earn:`財報 ${D.earn} 個交易日後公佈：新倉位等財報後先入，跳空可以直接跳過止蝕。`,
- ext:`現價已離突破位 +${D.ext.toFixed(1)}%：唔追，等拉回／Second Chance。`,bear:'指數喺向下嘅 200MA 之下（熊市）：保留購買力，唔做。',corr_rs:'調整市＋RS 弱，兩個減分項疊加：唔做。'}[D.f];
- return`<b>${DEC_NAME[D.f]}</b>：${t}<br><span class="small">${D.noise.join('、')}——全部係雜訊，唔改變決定。</span>`}
+ ext:`現價已離突破位 +${D.ext.toFixed(1)}%：唔追，等拉回／Second Chance。`,bear:'指數喺向下嘅 200MA 之下（熊市）：保留購買力，唔做。',corr_rs:'調整市＋RS 弱，兩個減分項疊加：唔做。'}[D.f],
+  note=D.f==='ok'?bt(BT.ok):D.reg!=='bull'?bt(BT.mkt):'';
+ return`<b>${DEC_NAME[D.f]}</b>：${t}<br>${note?note+'<br>':''}<span class="small">${D.noise.join('、')}——全部係雜訊，唔改變決定。</span>`}
 function decCtx(D){const regT={bull:'指數企喺向上嘅 50MA 同 200MA 之上（升勢）',corr:'指數跌穿 50MA，仍喺 200MA 之上（調整）',bear:'指數喺向下嘅 200MA 之下（熊市）'}[D.reg],
  rsT={strong:'RS 線（股價÷指數）創新高，跑贏大市',weak:'RS 線向下，近 3 個月跑輸大市',flat:'RS 線橫行，同大市差唔多'}[D.rs];
  return`<table><tr><th>大市</th><td>${regT}；最近 4 週出貨日 <b>${D.dist}</b> 個</td></tr><tr><th>個股形態</th><td>${PATTERNS[D.key].name}（日線，橙／藍線已畫好）</td></tr>
@@ -1127,7 +1169,7 @@ function drawIndex(cv,ix){const css=getComputedStyle(document.documentElement),c
 function startDecision(){if(!S)load();SES={mode:'dec',n:0,total:5,res:[],max:[],R:0,Rp:0};nextDecision()}
 function nextDecision(){if(SES.n>=SES.total)return decSummary();const D=genDecision(rs()),qs=buildDecQs(D);CUR={D,qs};
  view(`<div class="card">${back}<div class="tags"><span class="tag">🧭 實戰決策 ${SES.n+1}/${SES.total}</span><span class="tag sim">模擬教學圖</span></div>
- <p class="small">形態已經認到——今次練嘅係「認到之後點做」。由上至下行一次決策清單：大市 → 確認 → 事件 → 位置 → RS → 倉位。</p>
+ <p class="small">形態已經認到——今次練嘅係「認到之後點做」。由上至下行一次決策清單：大市 → 確認 → 事件 → 位置 → RS → 倉位。呢度全部係日線圖（點解唔用更短時段：睇決策清單嘅實測提示）。</p>
  <h3>① 大市（模擬指數，日線）</h3><div class="cvwrap"><canvas id="ix"></canvas></div>
  <h3>② 個股</h3><div class="cvwrap"><canvas id="cv"></canvas></div>${decCtx(D)}
  ${qs.map((q,i)=>`<div class="q"><b>${i+1}.</b> ${q.p}${q.o.map((o,j)=>`<label class="opt"><input type="radio" name="q${i}" value="${j}"> ${o.t}</label>`).join('')}</div>`).join('')}
@@ -1152,6 +1194,7 @@ function decSummary(){const t=SES.res.reduce((a,b)=>a+b,0),m=SES.max.reduce((a,b
  view(`<div class="card"><h1>🧭 實戰決策完成：${t}/${m}</h1><p>本輪：你 ${SES.R>=0?'+':''}${SES.R.toFixed(2)}R｜跟清單 ${SES.Rp>=0?'+':''}${SES.Rp.toFixed(2)}R</p>
  <h3>累計（${H.length} 題）</h3><p>決定準確率 <b>${acc}%</b>｜你嘅模擬 R <b>${cum>=0?'+':''}${cum.toFixed(1)}R</b>｜完全跟清單 <b>${cumP>=0?'+':''}${cumP.toFixed(1)}R</b></p>
  ${curveSvg(curve)}<p class="small">短期結果會有運氣；題目越多，「跟清單」嘅曲線越會跑贏亂嚟。只計你決定入場嘅交易（減半注計一半）。</p>
+ <p>${bt(BT.tf)}</p><p>${bt(BT.ok)}</p>
  <button id="again">再來一輪</button><button class="alt" id="ls">📘 決策清單</button><button class="alt" id="h">返回主頁</button></div>`);on('again',startDecision);on('ls',()=>jlDetail(18));on('h',home)}
 function curveSvg(a){if(a.length<2)return'';const w=300,h=70,mx=Math.max(1,...a.map(Math.abs)),pts=a.map((v,i)=>`${(i/(a.length-1)*w).toFixed(1)},${(h/2-v/mx*(h/2-4)).toFixed(1)}`).join(' ');
  return`<svg viewBox="0 0 ${w} ${h}" class="spark"><line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="var(--line)"/><polyline points="${pts}" fill="none" stroke="${a[a.length-1]>=0?'var(--ok)':'var(--bad)'}" stroke-width="2"/></svg>`}
@@ -1159,10 +1202,10 @@ function curveSvg(a){if(a.length<2)return'';const w=300,h=70,mx=Math.max(1,...a.
 /* ================= 課程頁面 ================= */
 function jlHome(){if(!S)load();const nx=RO.find(id=>!S.jl[id]);
  const card=l=>{const c=S.cards['J:'+l.id];return`<div class="lcard" data-jl="${l.id}"><div class="small">${isSug(l.id)?'📗 建議補充':'第 '+l.id+' 課'}・${l.src}</div><b>${l.t}</b> ${S.jl[l.id]?'✅':''}<div class="small">${l.mn}</div><div class="small">題目準確率 ${pct(S.lstat[l.id])}${c?'｜回憶 '+fmtDue(c.due):''}</div></div>`};
- view(`<div class="card">${back}<h2>📘 J Law 交易系統＋建議補充</h2><p class="small">J Law 部分整理自你嘅課堂筆記（公開 YouTube 教學）；「建議補充」係建議你一齊學嘅相關知識（四階段、底部形態、RS、量價、財報風險、交易心理）。</p>
+ view(`<div class="card">${back}<h2>📘 J Law 交易系統＋建議補充</h2><p class="small">J Law 部分整理自你嘅課堂筆記（公開 YouTube 教學）；「建議補充」係建議你一齊學嘅相關知識（四階段、底部形態、RS、量價、財報風險、交易心理、實戰決策），最後一課「真實基準率」用 ${BT_SRC.replace('，非投資建議','')}數據對返現實。</p>
  <button id="cq">🧠 概念快問</button><button id="dr">🧮 情境計算</button><button id="mt">🎯 M.E.T.A. 圖表</button><button id="tr">🚀 強勁趨勢</button><button id="vc">📈 VCP 辨識</button></div>
  <div class="card"><h3 style="margin-top:0">📍 建議學習次序</h3><ol class="path">${RO.map(id=>{const l=jlT(id);return`<li class="${S.jl[id]?'done':''}">${S.jl[id]?'✅':id===nx?'👉':'⬜'} <a href="#" data-jl="${id}">${l.t}</a>${isSug(id)?' <span class="tag">建議</span>':''}</li>`}).join('')}</ol>
- <p class="small">由「點樣判斷優勢」開始（M.E.T.A.、趨勢線、通道、均線、階段、量價），再學入場形態（VCP、底部、拉回買入、RS），最後係大市判斷、風險同心理。</p></div>
+ <p class="small">由「點樣判斷優勢」開始（M.E.T.A.、趨勢線、通道、均線、階段、量價），再學入場形態（VCP、底部、拉回買入、RS），最後係大市判斷、風險同心理，再用「真實基準率」對返現實。</p></div>
  <h3 class="sec">J Law 課程</h3><div class="lgrid">${JL.filter(l=>!isSug(l.id)).map(card).join('')}</div>
  <h3 class="sec">📗 建議補充知識</h3><div class="lgrid">${JL.filter(l=>isSug(l.id)).map(card).join('')}</div>`);
  on('cq',()=>startMC('concept'));on('dr',()=>startMC('drill'));on('mt',startMETA);on('tr',startTrend);on('vc',startVCP);document.querySelectorAll('[data-jl]').forEach(b=>b.onclick=e=>{e.preventDefault();jlDetail(+b.dataset.jl)})}
@@ -1338,7 +1381,7 @@ function buildMETAQs(m){const f=x=>'$'+x.toFixed(2),c=m.c,qs=[];
  qs.push({multi:true,p:'而家呢個位置（最右邊 K 線）有邊啲優勢？（可揀多個）',o:MEDGE.map(([k,t])=>({k,t,ok:m.has[k]})),
   ex:MEDGE.map(([k,t])=>`${m.has[k]?'✔':'✘'} ${t}<span class="small">　${metaWhy(m,k)}</span>`).join('<br>')+'<br><span class="small">判斷標準：「有支持」＝最近 4 根 K 嘅最低位去到該水平 ±1.2% 內，而收市仲企喺水平附近；距離 3% 以上或收市跌穿 3% 就唔算。</span>'});
  const F=n=>`${n} 個｜${META_DEC(n)}`;
- qs.push({p:'總共有幾多個優勢重疊？應該點做？',o:shuf(Math.random,uniqOpts(F(c),[F(Math.min(6,c+1)),F(Math.max(0,c-1)),F(Math.min(6,c+2)),F(Math.max(0,c-2))])),ex:`共 ${c} 個優勢。J Law：多個獨立理由喺同一位置重疊（M.E.T.A.）先出手；單一理由入場＝亂來。`});
+ qs.push({p:'總共有幾多個優勢重疊？應該點做？',o:shuf(Math.random,uniqOpts(F(c),[F(Math.min(6,c+1)),F(Math.max(0,c-1)),F(Math.min(6,c+2)),F(Math.max(0,c-2))])),ex:`共 ${c} 個優勢。J Law：多個獨立理由喺同一位置重疊（M.E.T.A.）先出手；單一理由入場＝亂來。<br>${bt(BT.meta)}`});
  if(c>=3)qs.push({p:'如果喺呢度入場（約 '+f(m.entry)+'），止蝕放邊？',o:shuf(Math.random,[{t:`支持區下方（約 ${f(m.stop)}，-${((m.entry-m.stop)/m.entry*100).toFixed(1)}%）`,ok:true},{t:`入場價下 0.5%（約 ${f(m.entry*.995)}）`,ok:false},{t:`基底最低位（約 ${f(Math.min(...m.bars.slice(m.s0+20,m.ps-10).map(b=>b.l)))}）`,ok:false},{t:'唔使止蝕，優勢咁多',ok:false}]),ex:'J Law：支持阻力係區間，止蝕放成個優勢區下方；太貼會被 Shakeout 洗走，放太遠就風險過大。'});
  else qs.push({p:'優勢唔夠，下一步點做？',o:shuf(Math.random,[{t:'放觀察名單，等跌到更多優勢重疊（例如前浪頂＋均線）或者突破 DTL',ok:true},{t:'照入，靠感覺',ok:false},{t:'加槓桿博反彈',ok:false},{t:'因為 RSI 超賣所以入',ok:false}]),ex:'冇 M.E.T.A. 就等；錯過都唔緊要，市場成日有下一個機會。'});
  return qs}
@@ -1357,7 +1400,7 @@ function gradeMETA(ans){const{m,qs}=CUR;let tot=0;
   const ok=q.o[ans[i]].ok;return{q,ok,u:q.o[ans[i]].t,c:q.o.find(o=>o.ok).t}});rows.forEach(r=>tot+=r.ok?1:0);
  review('M:meta',!rows[0].ok?(rows[1].ok?3:1):tot===qs.length?5:4);S.metaH.push(rows[1].ok?1:0);if(S.metaH.length>200)S.metaH.shift();bump(S.lstat,5,rows[1].ok);tick();save();SES.res.push(tot);SES.max.push(qs.length);
  view(`<div class="card"><div class="tags"><span class="tag">🎯 M.E.T.A. ${SES.n+1}/${SES.total}</span><span class="tag sim">模擬教學圖</span></div><h1>得分 ${tot}/${qs.length}　${m.c} 個優勢</h1>
- <div class="cvwrap"><canvas id="cv"></canvas></div><p class="small">綠底＝前浪頂區；藍線＝UTL；橙虛線＝回調 DTL；紅虛線＝止蝕；✔＝有呢個優勢。後續走勢：${m.c>=3?'優勢重疊位置反彈。':'優勢唔夠，跌穿支持。'}（教學示範，現實唔一定咁理想）</p>
+ <div class="cvwrap"><canvas id="cv"></canvas></div><p class="small">綠底＝前浪頂區；藍線＝UTL；橙虛線＝回調 DTL；紅虛線＝止蝕；✔＝有呢個優勢。後續走勢：${m.c>=3?'優勢重疊位置反彈。':'優勢唔夠，跌穿支持。'}（教學示範圖——實測入面優勢數同之後升跌冇咁嘅關係，見第 2 題解釋）</p>
  ${rows.map((r,i)=>`<div class="${r.ok?'okbox':'badbox'}"><b>${i+1}. ${r.q.p}</b> ${r.ok?'✔':'✘'}${r.part?` <span class="small">（${r.part}）</span>`:''}<br>${r.ok?'':`你揀：${r.u}<br>正解：<b>${r.c}</b><br>`}<span class="small">${r.q.ex}</span></div>`).join('')}
  <button id="nx">${SES.n<SES.total-1?'下一題':'完成本輪'}</button></div>`);
  drawMETA($('cv'),m,true);on('nx',()=>{SES.n++;nextMETA()})}
